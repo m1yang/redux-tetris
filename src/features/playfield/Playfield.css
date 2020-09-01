@@ -1,0 +1,6 @@
+/* playing field */
+.playfield {
+  border: solid #000;
+  padding: 2px;
+  margin: 2px;
+}

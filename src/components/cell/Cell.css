@@ -1,0 +1,17 @@
+.black {
+  border: solid #000;
+  margin: 0.1vh;
+  padding: 0.2vh;
+  width: 2.5vh;
+  height: 2.5vh;
+  background: content-box #000;
+}
+
+.grey {
+  border: solid #879372;
+  margin: 0.1vh;
+  padding: 0.2vh;
+  width: 2.5vh;
+  height: 2.5vh;
+  background: content-box #879372;
+}

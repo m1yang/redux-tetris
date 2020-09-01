@@ -1,0 +1,10 @@
+.matrix {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.matrix > div {
+  display: flex;
+  justify-content: center;
+}

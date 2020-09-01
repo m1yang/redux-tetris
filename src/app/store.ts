@@ -1,9 +1,13 @@
 import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
-import counterReducer from '../features/counter/counterSlice';
+import tetrominoReducer from '../features/tetromino/tetrominoSlice';
+import playfieldReducer from '../features/playfield/playfieldSlice';
+import boardReducer from '../features/scoreboard/scoreboardSlice';
 
 export const store = configureStore({
   reducer: {
-    counter: counterReducer,
+    tetromino: tetrominoReducer,
+    playfield: playfieldReducer,
+    board: boardReducer
   },
 });
 

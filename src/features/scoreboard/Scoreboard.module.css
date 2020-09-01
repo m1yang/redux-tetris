@@ -1,0 +1,20 @@
+.board {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.next {
+  flex: 2;
+}
+
+.tetromino {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.tetromino > div {
+  display: flex;
+  justify-content: center;
+}

@@ -1,0 +1,132 @@
+.joystick {
+  display: flex;
+  justify-content: space-between;
+  flex-flow: wrap;
+}
+
+.direction {
+  display: flex;
+  width: 50%;
+  flex-flow: wrap;
+  align-content: center;
+  justify-content: space-between;
+}
+
+.AB {
+  display: flex;
+  justify-content: center;
+  width: 50%;
+}
+
+.start {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.btn {
+  /* invisible border (will be colored on hover/focus) */
+  border: solid 1px transparent;
+  border-radius: 4px;
+
+  /* size comes from text & padding (no width/height) */
+  padding: 0.5em 1em;
+
+  background-color: rgb(68, 68, 68);
+  cursor: pointer;
+
+  /* 清除旧样式 */
+  outline: 0;
+}
+
+/* old-school "down" effect on clic + color tweak */
+.btn:active {
+  transform: translateY(1px);
+  filter: saturate(150%);
+}
+
+.gap {
+  flex: 1;
+  min-width: 33%;
+}
+
+.up {
+  composes: btn;
+  width: 33.3%;
+}
+.down {
+  composes: btn;
+  width: 33.3%;
+}
+.left {
+  composes: btn;
+  width: 33.3%;
+}
+.right {
+  composes: btn;
+  width: 33.3%;
+}
+.up::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border: 7px solid transparent;
+  border-bottom-color: #dedede;
+}
+
+.down::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border: 7px solid transparent;
+  border-top-color: #dedede;
+}
+
+.left::before {
+  content: "";
+  display: block;
+  width: 0;
+  height: 0;
+  border: 7px solid transparent;
+  border-bottom-color: #dedede;
+  transform: rotate(-90deg);
+}
+
+.right::after {
+  content: "";
+  display: block;
+  width: 0;
+  height: 0;
+  border: 7px solid transparent;
+  border-top-color: #dedede;
+  transform: rotate(-90deg);
+}
+
+.A {
+  composes: btn;
+  width: 44px;
+  height: 44px;
+  background: #a93671;
+  border-radius: 100%;
+  align-self: flex-end;
+}
+
+.B {
+  composes: btn;
+  width: 44px;
+  height: 44px;
+  background: #a93671;
+  border-radius: 100%;
+}
+
+.pause {
+  composes: btn;
+  background: rgb(153, 153, 153);
+  border-radius: 10px;
+}
+
+.reset {
+  composes: btn;
+  background: rgb(153, 153, 153);
+  border-radius: 10px;
+}
