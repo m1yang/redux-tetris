@@ -1,6 +1,7 @@
 import React from "react";
 import styles from "./Matrix.module.css";
 import { Cell } from "../cell/Cell";
+import { Blocks } from "../../common/types";
 
 // Matrix 矩阵包含行rows和列columns
 export interface Matrix {
@@ -8,17 +9,14 @@ export interface Matrix {
   rows: number;
 }
 
-// Blocks 每一行上固定的方块
-export type Blocks = Map<number, number[]>;
-
 type MatrixProps = {
   filled: Blocks;
 } & Matrix;
 
 const toColor = (source: number[][], target: Blocks) => {
-  for (let [key, value] of target.entries()) {
-    if (key > -1) {
-      value.forEach((ele: number) => (source[key][ele] = 1));
+  for (let [key, value] of Object.entries(target)) {
+    if (Number(key) > -1) {
+      value.forEach((ele: number) => (source[Number(key)][ele] = 1));
     }
   }
 };

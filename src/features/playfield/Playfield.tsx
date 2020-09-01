@@ -48,9 +48,9 @@ export function Playfield() {
   }
 
   // 判断是否消除
-  for (let [key, value] of current.entries()) {
+  for (let [key, value] of Object.entries(current)) {
     if (value.length === 10) {
-      dispatch(disappear(key));
+      dispatch(disappear(Number(key)));
       dispatch(completedLines(1));
       dispatch(grant());
     }

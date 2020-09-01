@@ -1,5 +1,6 @@
 import { createSelector } from "@reduxjs/toolkit";
 import { RootState } from "../../app/store";
+import { Blocks, Position } from "../../common/types";
 
 /* 
 共有3个功能区和方块有交互：joystick、next、playfield
@@ -99,23 +100,28 @@ const rotateCache = (item: number[][]) => {
 
 // 通过2维数组和坐标，返回一个新的blocks
 const toFill = (
-  blocks: Map<number, number[]>,
+  blocks: Blocks,
   pieces: number[][],
-  { x = 0, y = 0 }
+  { x, y }: Position
 ) => {
-  const tmp: Map<number, number[]> = new Map();
+  // 只有定位在playfield内才渲染，所以x，y均为正
+  if (x < 0 || y < 0) {
+    return blocks
+  }
+
+  let tmp:Blocks = {}
   pieces.forEach((value, index) => {
     const rows = y + index;
     const cols: number[] = [];
-    const filled = blocks.get(rows) || [];
+    const filled = blocks[rows] || [];
     value.forEach((v, i) => {
       if (v !== 0) {
         cols.push(i + x);
       }
     });
-    tmp.set(rows, [...cols, ...filled]);
+    tmp[rows] = [...cols, ...filled];
   });
-  return tmp;
+  return {...blocks, ...tmp};
 };
 
 /* next */
@@ -123,7 +129,7 @@ const toFill = (
 export const selectNext = createSelector(
   (state: RootState) => state.tetromino.nextShape,
   (shape) => {
-    const filled: Map<number, number[]> = new Map();
+    const filled: Blocks = {};
     const origin = { x: 0, y: 0 };
     const result = toFill(filled, shapes[shape[0]], { ...origin });
     return result;
@@ -174,9 +180,9 @@ export const selectBlocks = createSelector(
 
       if (
         // 判断下一行有没有被填充
-        (filled.has(nextLine) &&
+        (filled[nextLine] &&
           value.some(
-            (v, i) => v !== 0 && filled.get(nextLine)?.includes(i + axis.x)
+            (v, i) => v !== 0 && filled[nextLine].includes(i + axis.x)
           )) ||
         // 判断是不是到最后一行了
         currLine === 19
@@ -194,6 +200,6 @@ export const selectOffset = createSelector(
   selectRotation,
   (state: RootState) => state.playfield.axis,
   (shape, axis) => {
-    return shape[0].length + axis.x - 9;
+    return shape[0].length + axis.x - 10;
   }
 );

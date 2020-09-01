@@ -17,7 +17,7 @@ import { selectOffset } from "../tetromino/tetrominoSelectors";
 */
 export function Joystick() {
   const dispatch = useDispatch();
-  const offset = 9 - useSelector(selectOffset);
+  const offset = 10 - useSelector(selectOffset);
   // 事件绑定，先上下左右4个按钮看看
   // 键盘事件、触摸事件、鼠标事件
   const onRotateRight = () => {
@@ -36,7 +36,7 @@ export function Joystick() {
     dispatch(moveRight(offset));
   };
 
-  document.addEventListener("keydown", function (e) {
+  document.addEventListener("keypress", function (e) {
     switch (e.keyCode) {
       case 38:
         //上

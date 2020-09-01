@@ -1,19 +1,14 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { Blocks } from "../../components/matrix/Matrix";
-
-type Axis = {
-  x: number;
-  y: number;
-};
+import { Blocks,Position } from "../../common/types";
 
 interface PlayfieldState {
-  axis: Axis;
+  axis: Position;
   filled: Blocks;
 }
 
 const initialState: PlayfieldState = {
   axis: { x: 4, y: -2 },
-  filled: new Map(),
+  filled: {},
 };
 
 // var omit = (obj, ukey) => Object.keys(obj).reduce((acc, key) =>
@@ -30,13 +25,14 @@ export const playfieldSlice = createSlice({
     disappear: {
       reducer: (state, { payload }: PayloadAction<number>) => {
         // 通过比较和消除的行比较，filled数据依次覆盖下一行数据
-        let tmp: Blocks = new Map();
-        for (const [key, value] of state.filled) {
-          if (key < payload) {
-            tmp.set(key + 1, value);
+        let tmp: Blocks = state.filled;
+        for (const [key, value] of Object.entries(state.filled)) {
+          const row = Number(key)
+          if (row < payload) {
+            tmp[row +1] = value;
           }
-          if (key > payload) {
-            tmp.set(key, value);
+          if (row > payload) {
+            tmp[row] = value;
           }
         }
         state.filled = tmp;
@@ -50,7 +46,7 @@ export const playfieldSlice = createSlice({
       // 暂停是否需要做持久化,如果不做会导致刷新后读取初始值自动开始或暂停
     },
     reset: (state) => {
-      state.filled.clear();
+      state.filled = {};
     },
     // 边界问题，能否直接硬编码，要灵活的话，就传入边界值
     softDrop: (state) => {
@@ -72,7 +68,7 @@ export const playfieldSlice = createSlice({
     fillUp: (state, { payload }: PayloadAction<Blocks>) => {
       state.filled = payload;
     },
-    reDrop: (state, { payload }: PayloadAction<Axis>) => {
+    reDrop: (state, { payload }: PayloadAction<Position>) => {
       state.axis.x = payload.x;
       state.axis.y = payload.y;
     },
