@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import styles from "./Joystick.module.css";
 import { moveLeft, softDrop, moveRight } from "../playfield/playfieldSlice";
 import { rotateRight } from "../tetromino/tetrominoSlice";
-import { selectOffset } from "../tetromino/tetrominoSelectors";
+import { selectLength } from "../tetromino/tetrominoSelectors";
 
 // type Control = "rotateRight" | "softDrop" | "moveLeft" | "moveRight";
 
@@ -17,7 +17,8 @@ import { selectOffset } from "../tetromino/tetrominoSelectors";
 */
 export function Joystick() {
   const dispatch = useDispatch();
-  const offset = 10 - useSelector(selectOffset);
+  // x取值范围最大是[0,9]，减去方块长度，是当前能移动的范围
+  // const offset = 10 - useSelector(selectLength);
   // 事件绑定，先上下左右4个按钮看看
   // 键盘事件、触摸事件、鼠标事件
   const onRotateRight = () => {
@@ -32,11 +33,11 @@ export function Joystick() {
     dispatch(softDrop());
   };
 
-  const onMoveRight = () => {
-    dispatch(moveRight(offset));
-  };
+  // const onMoveRight = () => {
+  //   dispatch(moveRight(offset));
+  // };
 
-  document.addEventListener("keypress", function (e) {
+  document.addEventListener("keydown", function (e) {
     switch (e.keyCode) {
       case 38:
         //上
@@ -51,9 +52,9 @@ export function Joystick() {
         dispatch(moveLeft());
         break;
 
-      case 39:
-        dispatch(moveRight(offset));
-        break;
+      // case 39:
+      //   dispatch(moveRight(offset));
+      //   break;
 
       default:
         break;
@@ -70,10 +71,10 @@ export function Joystick() {
 
         <button className={styles.left} type="button" onClick={onMoveLeft} />
         <div className={styles.gap} />
-        <button className={styles.right} type="button" onClick={onMoveRight} />
+        <button className={styles.right} type="button" onClick={onMoveLeft} />
 
         <div className={styles.gap} />
-        <button className={styles.down} type="button" onClick={onSoftDrop} />
+        <button className={styles.down} type="button" onClick={onSoftDrop}/>
         <div className={styles.gap} />
       </div>
       <div className={styles.AB}>

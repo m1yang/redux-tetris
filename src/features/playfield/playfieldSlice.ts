@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { Blocks,Position } from "../../common/types";
+import { Blocks, Position } from "../../common/types";
 
 interface PlayfieldState {
   axis: Position;
@@ -29,7 +29,7 @@ export const playfieldSlice = createSlice({
         for (const [key, value] of Object.entries(state.filled)) {
           const row = Number(key)
           if (row < payload) {
-            tmp[row +1] = value;
+            tmp[row + 1] = value;
           }
           if (row > payload) {
             tmp[row] = value;
@@ -51,16 +51,16 @@ export const playfieldSlice = createSlice({
     // 边界问题，能否直接硬编码，要灵活的话，就传入边界值
     softDrop: (state) => {
       let y = state.axis.y;
-      state.axis.y = y > 20 ? y : y + 1;
+      state.axis.y = y > 20 ? 20 : y + 1;
     },
     moveLeft: (state) => {
       let x = state.axis.x;
       // 最小值是0
-      state.axis.x = x > 0 ? x - 1 : x;
+      state.axis.x = x > 0 ? x - 1 : 0;
     },
     moveRight: (state, { payload }: PayloadAction<number>) => {
       let x = state.axis.x;
-      state.axis.x = x > payload ? x : x + 1;
+      state.axis.x = x < payload ? x + 1 : payload;
     },
     hardDrop: (state, { payload }: PayloadAction<number>) => {
       state.axis.y = payload;
@@ -68,9 +68,9 @@ export const playfieldSlice = createSlice({
     fillUp: (state, { payload }: PayloadAction<Blocks>) => {
       state.filled = payload;
     },
-    reDrop: (state, { payload }: PayloadAction<Position>) => {
-      state.axis.x = payload.x;
-      state.axis.y = payload.y;
+    reDrop: (state) => {
+      state.axis.x = 4;
+      state.axis.y = -2;
     },
     wallkick: (state, { payload }: PayloadAction<number>) => {
       state.axis.x -= payload;

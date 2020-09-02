@@ -1,5 +1,5 @@
-import React from "react";
-import { useSelector, useDispatch } from "react-redux";
+import React, { useEffect } from "react";
+import { useSelector, useDispatch, shallowEqual } from "react-redux";
 
 import "./Playfield.css";
 import { fillUp, disappear, reDrop, wallkick } from "./playfieldSlice";
@@ -27,27 +27,33 @@ export function Playfield() {
   const origin = useSelector(selectOrigin);
 
   const offset = useSelector(selectOffset);
-  if (offset>0) {
+  if (offset > 0) {
     dispatch(wallkick(offset));
   }
 
-  const current = useSelector(selectCurrent);
+  // shallowEqual数据没变就不更新
+  const current = useSelector(selectCurrent,shallowEqual);
   const blocks = useSelector(selectBlocks);
 
   // 判断游戏是否结束
   // if (stopDrop === 0) {
   // gameover
   // }
+
   // 不能继续下落
-  if (blocks) {
-    dispatch(fillUp(current));
-    // 此时触发下一个方块
-    dispatch(getNextShape());
-    // 重置定位点
-    dispatch(reDrop({ x: origin[0], y: origin[1] }));
-  }
+  useEffect(() => {
+    if (blocks) {
+      dispatch(fillUp(current));
+      // 此时触发下一个方块
+      dispatch(getNextShape());
+      // 重置定位点
+      dispatch(reDrop());
+    }
+  }, [blocks, current, origin, dispatch])
+
 
   // 判断是否消除
+  // TODO：消除需要优化
   for (let [key, value] of Object.entries(current)) {
     if (value.length === 10) {
       dispatch(disappear(Number(key)));

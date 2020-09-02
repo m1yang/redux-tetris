@@ -58,13 +58,13 @@ export const shapes = {
 
 // 每个方块的出发点
 const origin = {
-  I: [4, -1],
-  L: [4, -2],
-  J: [4, -2],
-  Z: [4, -2],
-  S: [4, -2],
-  O: [4, -2],
-  T: [4, -2],
+  I: [0, 1],
+  L: [0, 0],
+  J: [0, 0],
+  Z: [0, 0],
+  S: [0, 0],
+  O: [0, 0],
+  T: [0, 0],
 };
 
 // 方块旋转功能
@@ -109,19 +109,22 @@ const toFill = (
     return blocks
   }
 
-  let tmp:Blocks = {}
-  pieces.forEach((value, index) => {
-    const rows = y + index;
-    const cols: number[] = [];
-    const filled = blocks[rows] || [];
-    value.forEach((v, i) => {
-      if (v !== 0) {
-        cols.push(i + x);
-      }
-    });
-    tmp[rows] = [...cols, ...filled];
-  });
-  return {...blocks, ...tmp};
+  return {
+    ...blocks, ...pieces.reduce((acc, value, index) => {
+      const rows = index + y;
+      const cols: number[] = [];
+      const filled = blocks[rows] || [];
+
+      value.forEach((v, i) => {
+        if (v !== 0) {
+          cols.push(i + x);
+        }
+      });
+
+      acc[rows] = [...cols, ...filled]
+      return acc
+    }, {} as Blocks)
+  }
 };
 
 /* next */
@@ -129,9 +132,10 @@ const toFill = (
 export const selectNext = createSelector(
   (state: RootState) => state.tetromino.nextShape,
   (shape) => {
+    const next = shape[0]
     const filled: Blocks = {};
-    const origin = { x: 0, y: 0 };
-    const result = toFill(filled, shapes[shape[0]], { ...origin });
+    const position:Position = {x:origin[next][0], y: origin[next][1]}
+    const result = toFill(filled, shapes[next], { ...position });
     return result;
   }
 );
@@ -152,7 +156,13 @@ const selectRotation = createSelector(
 // 计算方块原点
 export const selectOrigin = createSelector(
   (state: RootState) => state.tetromino.currentShape,
-  (shape) => origin[shape]
+  (state: RootState) => state.playfield.axis,
+  (shape, axis) => {
+    return {
+      x: axis.x + origin[shape][0],
+      y: axis.y + origin[shape][1]
+    }
+  }
 );
 
 // 计算当前填充方块
@@ -196,10 +206,17 @@ export const selectBlocks = createSelector(
 
 /* joystick */
 // 位置会受方块大小影响，计算超出多少列
+export const selectLength = createSelector(
+  selectRotation,
+  (shape) => {
+    return shape[0].length;
+  }
+)
+
 export const selectOffset = createSelector(
   selectRotation,
   (state: RootState) => state.playfield.axis,
   (shape, axis) => {
-    return shape[0].length + axis.x - 10;
+    return shape.length + axis.x - 10;
   }
 );
