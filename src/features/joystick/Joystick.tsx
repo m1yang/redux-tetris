@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import styles from "./Joystick.module.css";
 import { moveLeft, softDrop, moveRight } from "../playfield/playfieldSlice";
 import { rotateRight } from "../tetromino/tetrominoSlice";
-import { selectBorder } from "../tetromino/tetrominoSelectors";
+import { selectControl } from "../tetromino/tetrominoSelectors";
 
 // type Control = "rotateRight" | "softDrop" | "moveLeft" | "moveRight";
 
@@ -18,25 +18,42 @@ import { selectBorder } from "../tetromino/tetrominoSelectors";
 export function Joystick() {
   const dispatch = useDispatch();
   // x取值范围最大是[0,9]，减去方块长度，是当前能移动的范围
-  const border = useSelector(selectBorder);
+  const control = useSelector(selectControl);
   // 事件绑定，先上下左右4个按钮看看
   // 键盘事件、触摸事件、鼠标事件
-  const onRotateRight = () => {
-    dispatch(rotateRight());
-  };
+  // TODO：custom hooks
+  const onRotateRight = useCallback(
+    () => {
+      if (control('up')) {
+        dispatch(rotateRight());
+      }
+    },
+    [control, dispatch],
+  );
 
-  const onMoveLeft = () => {
-    dispatch(moveLeft());
-  };
+  const onMoveLeft = useCallback(
+    () => {
+      if (control('left')) {
+        dispatch(moveLeft());
+      }
+    }, [control, dispatch]
+  );
 
-  const onSoftDrop = () => {
-    dispatch(softDrop());
-  };
+  const onSoftDrop = useCallback(
+    () => {
+      if (control('down')) {
+        dispatch(softDrop());
+      }
+    }, [control, dispatch]
+  );
 
   const onMoveRight = useCallback(
-    () => dispatch(moveRight(border)),
-    [dispatch, border]
-  )
+    () => {
+      if (control('right')) {
+        dispatch(moveRight());
+      }
+    }, [control, dispatch]
+  );
   // const onMoveRight = () => {
   //   dispatch(moveRight(border));
   // };
@@ -47,19 +64,19 @@ export function Joystick() {
       switch (ev.keyCode) {
         case 38:
           //上
-          dispatch(rotateRight());
+          onRotateRight();
           break;
         case 40:
           //下
-          dispatch(softDrop());
+          onSoftDrop();
           break;
         case 37:
           //左
-          dispatch(moveLeft());
+          onMoveLeft();
           break;
 
         case 39:
-          dispatch(moveRight(border));
+          onMoveRight();
           break;
         default:
           break;
@@ -70,7 +87,7 @@ export function Joystick() {
       window.removeEventListener('keydown', handlerKeydown);
     };
     // return window.removeEventListener('keydown', handleKeydown)
-  }, [border, dispatch])
+  }, [onRotateRight, onSoftDrop, onMoveLeft, onMoveRight, dispatch])
 
 
   return (

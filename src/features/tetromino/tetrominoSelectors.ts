@@ -94,6 +94,7 @@ const toFill = (
   { x, y }: Position
 ) => {
   // 只有定位在playfield内才渲染，所以x，y均为正
+  // TODO: 需要判断方块的每一行
   if (x < 0 || y < 0) {
     return blocks
   }
@@ -130,7 +131,7 @@ const canMove = (
     if (
       (blocks[currLine] &&
         value.some((v, i) => v !== 0 && blocks[currLine].includes(i + x))) ||
-      currLine === 19
+      currLine === 20
     ) {
       return false;
     }
@@ -192,9 +193,7 @@ export const selectControl = createSelector(
   selectRotation,
   (state: RootState) => state.playfield.axis,
   (state: RootState) => state.playfield.filled,
-  (shape, axis, filled) => {
-    canControl(filled, shape, axis)
-  }
+  (shape, axis, filled) => canControl(filled, shape, axis)
 )
 
 /* playfield */
@@ -215,26 +214,8 @@ export const selectBlocks = createSelector(
   selectRotation,
   (state: RootState) => state.playfield.axis,
   (state: RootState) => state.playfield.filled,
-  (shape, axis, filled) => {
-    for (let index = 0; index < shape.length; index++) {
-      const currLine = axis.y + index;
-      const nextLine = currLine + 1;
-      const value = shape[index];
-
-      if (
-        // 判断下一行有没有被填充
-        (filled[nextLine] &&
-          value.some(
-            (v, i) => v !== 0 && filled[nextLine].includes(i + axis.x)
-          )) ||
-        // 判断是不是到最后一行了
-        currLine === 19
-      ) {
-        return currLine;
-      }
-    }
-    return false;
-  }
+  (shape, axis, filled) =>
+    canControl(filled, shape, axis)('down')
 );
 
 // 踢墙

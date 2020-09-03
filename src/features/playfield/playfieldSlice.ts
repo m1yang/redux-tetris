@@ -22,6 +22,7 @@ export const playfieldSlice = createSlice({
     // Playfield组件不应该修改state，所以消除的重头还是放在了slice里
     // 组件只负责判断是否触发消除，并向action传入被消除的行
     // 这里考虑的另一点是该不该在动作中加入这么繁重的数据处理
+    // TODO: 有bug
     disappear: {
       reducer: (state, { payload }: PayloadAction<number>) => {
         // 通过比较和消除的行比较，filled数据依次覆盖下一行数据
@@ -50,17 +51,20 @@ export const playfieldSlice = createSlice({
     },
     // 边界问题，能否直接硬编码，要灵活的话，就传入边界值
     softDrop: (state) => {
-      let y = state.axis.y;
-      state.axis.y = y > 20 ? 20 : y + 1;
+      // let y = state.axis.y;
+      // state.axis.y = y > 20 ? 20 : y + 1;
+      state.axis.y+=1
     },
     moveLeft: (state) => {
-      let x = state.axis.x;
-      // 最小值是0
-      state.axis.x = x > 0 ? x - 1 : 0;
+      // let x = state.axis.x;
+      // // 最小值是0
+      // state.axis.x = x > 0 ? x - 1 : 0;
+      state.axis.x -= 1
     },
-    moveRight: (state, { payload }: PayloadAction<number>) => {
-      let x = state.axis.x;
-      state.axis.x = x < payload ? x + 1 : payload;
+    moveRight: (state) => {
+      // let x = state.axis.x;
+      // state.axis.x = x < payload ? x + 1 : payload;
+      state.axis.x +=1
     },
     hardDrop: (state, { payload }: PayloadAction<number>) => {
       state.axis.y = payload;

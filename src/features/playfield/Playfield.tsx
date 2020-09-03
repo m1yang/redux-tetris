@@ -28,7 +28,7 @@ export function Playfield() {
   }
 
   const current = useSelector(selectCurrent);
-  const blocks = useSelector(selectBlocks);
+  const drop = useSelector(selectBlocks);
 
   // 判断游戏是否结束
   // if (stopDrop === 0) {
@@ -37,14 +37,14 @@ export function Playfield() {
 
   // 不能继续下落，期望只有当blocks发生改变才执行相关代码
   useEffect(() => {
-    if (blocks) {
+    if (!drop) {
       dispatch(fillUp(current));
       // 此时触发下一个方块
       dispatch(getNextShape());
       // 重置定位点
       dispatch(reDrop());
     }
-  }, [blocks, current, dispatch])
+  }, [drop, current, dispatch])
 
 
   // 判断是否消除
