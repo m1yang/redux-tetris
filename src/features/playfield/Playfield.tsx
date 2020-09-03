@@ -1,12 +1,11 @@
 import React, { useEffect } from "react";
-import { useSelector, useDispatch, shallowEqual } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 
 import "./Playfield.css";
 import { fillUp, disappear, reDrop, wallkick } from "./playfieldSlice";
 import { Matrix } from "../../components/matrix/Matrix";
 import { getNextShape } from "../tetromino/tetrominoSlice";
 import {
-  selectOrigin,
   selectCurrent,
   selectBlocks,
   selectOffset,
@@ -23,16 +22,12 @@ import { grant, completedLines } from "../scoreboard/scoreboardSlice";
 export function Playfield() {
   const dispatch = useDispatch();
 
-  // 计算方块原点
-  const origin = useSelector(selectOrigin);
-
   const offset = useSelector(selectOffset);
   if (offset > 0) {
     dispatch(wallkick(offset));
   }
 
-  // shallowEqual数据没变就不更新
-  const current = useSelector(selectCurrent,shallowEqual);
+  const current = useSelector(selectCurrent);
   const blocks = useSelector(selectBlocks);
 
   // 判断游戏是否结束
@@ -40,7 +35,7 @@ export function Playfield() {
   // gameover
   // }
 
-  // 不能继续下落
+  // 不能继续下落，期望只有当blocks发生改变才执行相关代码
   useEffect(() => {
     if (blocks) {
       dispatch(fillUp(current));
@@ -49,7 +44,7 @@ export function Playfield() {
       // 重置定位点
       dispatch(reDrop());
     }
-  }, [blocks, current, origin, dispatch])
+  }, [blocks, current, dispatch])
 
 
   // 判断是否消除

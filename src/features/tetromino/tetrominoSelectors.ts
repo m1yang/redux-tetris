@@ -56,17 +56,6 @@ export const shapes = {
   ],
 };
 
-// 每个方块的出发点
-const origin = {
-  I: [0, 1],
-  L: [0, 0],
-  J: [0, 0],
-  Z: [0, 0],
-  S: [0, 0],
-  O: [0, 0],
-  T: [0, 0],
-};
-
 // 方块旋转功能
 const rotate = (pieces: number[][]) => {
   return pieces
@@ -127,6 +116,44 @@ const toFill = (
   }
 };
 
+// type Moving = (blocks: Blocks,pieces: number[][],{ x, y }: Position) => boolean
+// 判断方块左右是否有已填充方块
+const canMove = (
+  blocks: Blocks,
+  pieces: number[][],
+  { x, y }: Position
+) => {
+  for (let index = 0; index < pieces.length; index++) {
+    const currLine = y + index;
+    const value = pieces[index];
+
+    if (
+      (blocks[currLine] &&
+        value.some((v, i) => v !== 0 && blocks[currLine].includes(i + x))) ||
+      currLine === 19
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+const canControl = (
+  blocks: Blocks,
+  pieces: number[][],
+  { x, y }: Position
+) => (
+  action: string,
+  ) => {
+    const move2next: { [action: string]: boolean } = {
+      'up': canMove(blocks, rotate(pieces), { x, y }),
+      'right': canMove(blocks, pieces, { x: x + 1, y }),
+      'down': canMove(blocks, pieces, { x, y: y + 1 }),
+      'left': canMove(blocks, pieces, { x: x - 1, y }),
+    }
+    return move2next[action]
+  }
+
 /* next */
 // 计算下一个填充方块，方向和位置是固定的
 export const selectNext = createSelector(
@@ -134,13 +161,13 @@ export const selectNext = createSelector(
   (shape) => {
     const next = shape[0]
     const filled: Blocks = {};
-    const position:Position = {x:origin[next][0], y: origin[next][1]}
+    const position: Position = { x: 0, y: 0 }
     const result = toFill(filled, shapes[next], { ...position });
     return result;
   }
 );
 
-/* playfield */
+/* joystick */
 // 计算当前方向的方块
 const selectRotation = createSelector(
   (state: RootState) => state.tetromino.currentShape,
@@ -152,19 +179,25 @@ const selectRotation = createSelector(
     return results[direction];
   }
 );
-
-// 计算方块原点
-export const selectOrigin = createSelector(
-  (state: RootState) => state.tetromino.currentShape,
-  (state: RootState) => state.playfield.axis,
-  (shape, axis) => {
-    return {
-      x: axis.x + origin[shape][0],
-      y: axis.y + origin[shape][1]
-    }
+/* joystick */
+// 位置会受方块大小影响，计算超出多少列
+export const selectBorder = createSelector(
+  selectRotation,
+  (shape) => {
+    return 10 - shape[0].length;
   }
-);
+)
 
+export const selectControl = createSelector(
+  selectRotation,
+  (state: RootState) => state.playfield.axis,
+  (state: RootState) => state.playfield.filled,
+  (shape, axis, filled) => {
+    canControl(filled, shape, axis)
+  }
+)
+
+/* playfield */
 // 计算当前填充方块
 export const selectCurrent = createSelector(
   selectRotation,
@@ -204,15 +237,7 @@ export const selectBlocks = createSelector(
   }
 );
 
-/* joystick */
-// 位置会受方块大小影响，计算超出多少列
-export const selectLength = createSelector(
-  selectRotation,
-  (shape) => {
-    return shape[0].length;
-  }
-)
-
+// 踢墙
 export const selectOffset = createSelector(
   selectRotation,
   (state: RootState) => state.playfield.axis,

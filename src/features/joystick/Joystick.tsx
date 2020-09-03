@@ -1,10 +1,10 @@
-import React from "react";
+import React, { useEffect, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import styles from "./Joystick.module.css";
 import { moveLeft, softDrop, moveRight } from "../playfield/playfieldSlice";
 import { rotateRight } from "../tetromino/tetrominoSlice";
-import { selectLength } from "../tetromino/tetrominoSelectors";
+import { selectBorder } from "../tetromino/tetrominoSelectors";
 
 // type Control = "rotateRight" | "softDrop" | "moveLeft" | "moveRight";
 
@@ -18,7 +18,7 @@ import { selectLength } from "../tetromino/tetrominoSelectors";
 export function Joystick() {
   const dispatch = useDispatch();
   // x取值范围最大是[0,9]，减去方块长度，是当前能移动的范围
-  // const offset = 10 - useSelector(selectLength);
+  const border = useSelector(selectBorder);
   // 事件绑定，先上下左右4个按钮看看
   // 键盘事件、触摸事件、鼠标事件
   const onRotateRight = () => {
@@ -33,33 +33,45 @@ export function Joystick() {
     dispatch(softDrop());
   };
 
+  const onMoveRight = useCallback(
+    () => dispatch(moveRight(border)),
+    [dispatch, border]
+  )
   // const onMoveRight = () => {
-  //   dispatch(moveRight(offset));
+  //   dispatch(moveRight(border));
   // };
 
-  document.addEventListener("keydown", function (e) {
-    switch (e.keyCode) {
-      case 38:
-        //上
-        dispatch(rotateRight());
-        break;
-      case 40:
-        //下
-        dispatch(softDrop());
-        break;
-      case 37:
-        //左
-        dispatch(moveLeft());
-        break;
+  // dom操作，需要使用useEffect
+  useEffect(() => {
+    const handlerKeydown: (this: Window, ev: KeyboardEvent) => any = (ev) => {
+      switch (ev.keyCode) {
+        case 38:
+          //上
+          dispatch(rotateRight());
+          break;
+        case 40:
+          //下
+          dispatch(softDrop());
+          break;
+        case 37:
+          //左
+          dispatch(moveLeft());
+          break;
 
-      // case 39:
-      //   dispatch(moveRight(offset));
-      //   break;
-
-      default:
-        break;
+        case 39:
+          dispatch(moveRight(border));
+          break;
+        default:
+          break;
+      }
     }
-  });
+    window.addEventListener('keydown', handlerKeydown);
+    return function cleanup() {
+      window.removeEventListener('keydown', handlerKeydown);
+    };
+    // return window.removeEventListener('keydown', handleKeydown)
+  }, [border, dispatch])
+
 
   return (
     // 绘制摇杆
@@ -71,10 +83,10 @@ export function Joystick() {
 
         <button className={styles.left} type="button" onClick={onMoveLeft} />
         <div className={styles.gap} />
-        <button className={styles.right} type="button" onClick={onMoveLeft} />
+        <button className={styles.right} type="button" onClick={onMoveRight} />
 
         <div className={styles.gap} />
-        <button className={styles.down} type="button" onClick={onSoftDrop}/>
+        <button className={styles.down} type="button" onClick={onSoftDrop} />
         <div className={styles.gap} />
       </div>
       <div className={styles.AB}>
