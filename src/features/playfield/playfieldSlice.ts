@@ -1,5 +1,6 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction, createSelector } from "@reduxjs/toolkit";
 import { Blocks, Position } from "../../common/types";
+import { RootState } from "../../app/store";
 
 interface PlayfieldState {
   axis: Position;
@@ -19,26 +20,24 @@ export const playfieldSlice = createSlice({
   name: "playfield",
   initialState,
   reducers: {
-    // Playfield组件不应该修改state，所以消除的重头还是放在了slice里
-    // 组件只负责判断是否触发消除，并向action传入被消除的行
-    // 这里考虑的另一点是该不该在动作中加入这么繁重的数据处理
-    // TODO: 有bug
+    // 考虑过是否应该在selector中处理这样复杂的数据，但是这里并不是衍生数据，
+    // 重点是这里并不需要缓存数据
     disappear: {
-      reducer: (state, { payload }: PayloadAction<number>) => {
+      reducer: (state, { payload }: PayloadAction<number[]>) => {
         // 通过比较和消除的行比较，filled数据依次覆盖下一行数据
-        let tmp: Blocks = state.filled;
-        for (const [key, value] of Object.entries(state.filled)) {
-          const row = Number(key)
-          if (row < payload) {
-            tmp[row + 1] = value;
-          }
-          if (row > payload) {
-            tmp[row] = value;
-          }
-        }
-        state.filled = tmp;
+        const clear1line = (line: number, filled: Blocks) => Object.keys(filled).reduce((acc, cur) => {
+          const row = Number(cur)
+          return row === line ?
+            acc : {
+              ...acc,
+              [row < line ? row + 1 : row]: filled[row]
+            }
+        }, {} as Blocks)
+
+        state.filled = payload.reduce((acc, v) => clear1line(v, acc)
+          , state.filled)
       },
-      prepare: (line: number) => {
+      prepare: (line: number[]) => {
         return { payload: line };
       },
     },
@@ -53,7 +52,7 @@ export const playfieldSlice = createSlice({
     softDrop: (state) => {
       // let y = state.axis.y;
       // state.axis.y = y > 20 ? 20 : y + 1;
-      state.axis.y+=1
+      state.axis.y += 1
     },
     moveLeft: (state) => {
       // let x = state.axis.x;
@@ -64,7 +63,7 @@ export const playfieldSlice = createSlice({
     moveRight: (state) => {
       // let x = state.axis.x;
       // state.axis.x = x < payload ? x + 1 : payload;
-      state.axis.x +=1
+      state.axis.x += 1
     },
     hardDrop: (state, { payload }: PayloadAction<number>) => {
       state.axis.y = payload;
@@ -77,7 +76,8 @@ export const playfieldSlice = createSlice({
       state.axis.y = -2;
     },
     wallkick: (state, { payload }: PayloadAction<number>) => {
-      state.axis.x -= payload;
+      const x = state.axis.x
+      state.axis.x = x > payload ? payload : x
     },
   },
 });
@@ -94,3 +94,17 @@ export const {
 } = playfieldSlice.actions;
 
 export default playfieldSlice.reducer;
+
+// playfield组件判断当前数据是否存在长度满格的，存在就调用该计算
+export const selectCompletedLines = createSelector(
+  (state: RootState) => state.playfield.filled,
+  (filled) => {
+    let rows: number[] = [];
+    for (let [key, value] of Object.entries(filled)) {
+      if (value.length === 10) {
+        rows.push(Number(key));
+      }
+    }
+    return rows
+  }
+)

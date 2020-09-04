@@ -88,25 +88,24 @@ const rotateCache = (item: number[][]) => {
 };
 
 // 通过2维数组和坐标，返回一个新的blocks
+// 填充的数据范围受矩阵行和列影响
 const toFill = (
   blocks: Blocks,
   pieces: number[][],
   { x, y }: Position
 ) => {
-  // 只有定位在playfield内才渲染，所以x，y均为正
-  // TODO: 需要判断方块的每一行
-  if (x < 0 || y < 0) {
-    return blocks
-  }
-
   return {
     ...blocks, ...pieces.reduce((acc, value, index) => {
       const rows = index + y;
+      if (rows < 0) {
+        return acc
+      }
       const cols: number[] = [];
       const filled = blocks[rows] || [];
 
       value.forEach((v, i) => {
-        if (v !== 0) {
+        // 判断有方块，且方块位置<10
+        if (v !== 0 && i+x<10) {
           cols.push(i + x);
         }
       });
@@ -128,32 +127,14 @@ const canMove = (
     const currLine = y + index;
     const value = pieces[index];
 
-    if (
-      (blocks[currLine] &&
-        value.some((v, i) => v !== 0 && blocks[currLine].includes(i + x))) ||
-      currLine === 20
+    if (blocks[currLine] &&
+      value.some((v, i) => v !== 0 && blocks[currLine].includes(i + x))
     ) {
       return false;
     }
   }
   return true;
 }
-
-const canControl = (
-  blocks: Blocks,
-  pieces: number[][],
-  { x, y }: Position
-) => (
-  action: string,
-  ) => {
-    const move2next: { [action: string]: boolean } = {
-      'up': canMove(blocks, rotate(pieces), { x, y }),
-      'right': canMove(blocks, pieces, { x: x + 1, y }),
-      'down': canMove(blocks, pieces, { x, y: y + 1 }),
-      'left': canMove(blocks, pieces, { x: x - 1, y }),
-    }
-    return move2next[action]
-  }
 
 /* next */
 // 计算下一个填充方块，方向和位置是固定的
@@ -180,20 +161,32 @@ const selectRotation = createSelector(
     return results[direction];
   }
 );
-/* joystick */
-// 位置会受方块大小影响，计算超出多少列
-export const selectBorder = createSelector(
-  selectRotation,
-  (shape) => {
-    return 10 - shape[0].length;
-  }
-)
 
 export const selectControl = createSelector(
   selectRotation,
   (state: RootState) => state.playfield.axis,
   (state: RootState) => state.playfield.filled,
-  (shape, axis, filled) => canControl(filled, shape, axis)
+  (shape, axis, filled) => (
+    action: string,
+  ) => {
+    const x = axis.x
+    const y = axis.y
+    // 预测是否能执行下一步操作
+    const move2next: { [action: string]: boolean } = {
+      'up': canMove(filled, rotate(shape), { x, y }),
+      'right': canMove(filled, shape, { x: x + 1, y }),
+      'down': canMove(filled, shape, { x, y: y + 1 }),
+      'left': canMove(filled, shape, { x: x - 1, y }),
+    }
+    // 限制移动边界
+    const move2boundary: { [action: string]: boolean } = {
+      'up': true,
+      'right': x + shape[0].length < 10,
+      'down': shape.length + y < 20,
+      'left': x > 0,
+    }
+    return move2next[action] && move2boundary[action]
+  }
 )
 
 /* playfield */
@@ -208,21 +201,16 @@ export const selectCurrent = createSelector(
   }
 );
 
-// 计算下一行是否有已填充方块，没有则return false，有则return 具体哪一行
-// 需要关注判断的顺序
-export const selectBlocks = createSelector(
-  selectRotation,
-  (state: RootState) => state.playfield.axis,
-  (state: RootState) => state.playfield.filled,
-  (shape, axis, filled) =>
-    canControl(filled, shape, axis)('down')
+// 计算是否能继续下落
+export const selectDrop = createSelector(
+  selectControl,
+  (control) => control('down')
 );
 
-// 踢墙
+// 踢墙 x的取值范围为[0~10-length] 
 export const selectOffset = createSelector(
   selectRotation,
-  (state: RootState) => state.playfield.axis,
-  (shape, axis) => {
-    return shape.length + axis.x - 10;
+  (shape) => {
+    return 10- shape[0].length;
   }
 );

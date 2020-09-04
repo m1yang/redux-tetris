@@ -2,12 +2,18 @@ import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import "./Playfield.css";
-import { fillUp, disappear, reDrop, wallkick } from "./playfieldSlice";
+import {
+  fillUp,
+  disappear,
+  reDrop,
+  wallkick,
+  selectCompletedLines
+} from "./playfieldSlice";
 import { Matrix } from "../../components/matrix/Matrix";
 import { getNextShape } from "../tetromino/tetrominoSlice";
 import {
   selectCurrent,
-  selectBlocks,
+  selectDrop,
   selectOffset,
 } from "../tetromino/tetrominoSelectors";
 import { grant, completedLines } from "../scoreboard/scoreboardSlice";
@@ -22,13 +28,16 @@ import { grant, completedLines } from "../scoreboard/scoreboardSlice";
 export function Playfield() {
   const dispatch = useDispatch();
 
+  // 可以注入x来判断是否派发动作
   const offset = useSelector(selectOffset);
-  if (offset > 0) {
-    dispatch(wallkick(offset));
-  }
+  console.log(offset)
+  useEffect(() => {
+      dispatch(wallkick(offset));
+  }, [offset, dispatch])
+
 
   const current = useSelector(selectCurrent);
-  const drop = useSelector(selectBlocks);
+  const drop = useSelector(selectDrop);
 
   // 判断游戏是否结束
   // if (stopDrop === 0) {
@@ -36,6 +45,7 @@ export function Playfield() {
   // }
 
   // 不能继续下落，期望只有当blocks发生改变才执行相关代码
+  // 同步派发动作
   useEffect(() => {
     if (!drop) {
       dispatch(fillUp(current));
@@ -47,15 +57,15 @@ export function Playfield() {
   }, [drop, current, dispatch])
 
 
-  // 判断是否消除
-  // TODO：消除需要优化
-  for (let [key, value] of Object.entries(current)) {
-    if (value.length === 10) {
-      dispatch(disappear(Number(key)));
-      dispatch(completedLines(1));
+  const lines = useSelector(selectCompletedLines)
+  // 判断是否消除，可以异步但没必要
+  useEffect(() => {
+    if (lines.length > 0) {
+      dispatch(disappear(lines));
+      dispatch(completedLines(lines.length));
       dispatch(grant());
     }
-  }
+  }, [lines, dispatch])
 
   // 游戏的开始和暂停，应该由最终容器控制
 
