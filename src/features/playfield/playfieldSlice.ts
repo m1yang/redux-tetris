@@ -76,8 +76,7 @@ export const playfieldSlice = createSlice({
       state.axis.y = -2;
     },
     wallkick: (state, { payload }: PayloadAction<number>) => {
-      const x = state.axis.x
-      state.axis.x = x > payload ? payload : x
+      state.axis.x -= payload
     },
   },
 });

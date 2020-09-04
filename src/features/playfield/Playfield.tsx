@@ -30,9 +30,10 @@ export function Playfield() {
 
   // 可以注入x来判断是否派发动作
   const offset = useSelector(selectOffset);
-  console.log(offset)
   useEffect(() => {
+    if (offset) {
       dispatch(wallkick(offset));
+    }
   }, [offset, dispatch])
 
 

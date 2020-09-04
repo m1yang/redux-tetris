@@ -105,7 +105,7 @@ const toFill = (
 
       value.forEach((v, i) => {
         // 判断有方块，且方块位置<10
-        if (v !== 0 && i+x<10) {
+        if (v !== 0 && i + x < 10) {
           cols.push(i + x);
         }
       });
@@ -208,9 +208,12 @@ export const selectDrop = createSelector(
 );
 
 // 踢墙 x的取值范围为[0~10-length] 
+// 田园Go风格，有超出范围就返回该范围，没有就返回false
 export const selectOffset = createSelector(
   selectRotation,
-  (shape) => {
-    return 10- shape[0].length;
+  (state: RootState) => state.playfield.axis,
+  (shape, axis) => {
+    const offset = shape[0].length + axis.x - 10
+    return offset > 0 ? offset : false;
   }
 );
