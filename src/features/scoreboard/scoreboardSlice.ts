@@ -1,12 +1,12 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-// import { AppThunk, RootState } from "../../app/store";
+import { createSlice, PayloadAction, createSelector } from "@reduxjs/toolkit";
+import { RootState } from "../../app/store";
 
 const speeds = [800, 650, 500, 370, 250, 160];
 
-// const delays = [50, 60, 70, 80, 90, 100];
+const delays = [50, 60, 70, 80, 90, 100];
 
 // bonus points 额外奖励
-// const clearPoints = [100, 300, 700, 1500];
+// const clearPoints = [100, 300, 500, 800];
 
 const maxPoint = 999999;
 
@@ -46,3 +46,13 @@ export const boardSlice = createSlice({
 export const { grant, levelUp, completedLines } = boardSlice.actions;
 
 export default boardSlice.reducer;
+
+export const selectSpeed = createSelector(
+  (state: RootState) => state.board.level,
+  (level) => speeds[level]
+);
+
+export const selectDelay = createSelector(
+  (state: RootState) => state.board.level,
+  (level) => delays[level]
+);

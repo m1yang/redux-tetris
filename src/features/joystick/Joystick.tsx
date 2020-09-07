@@ -1,12 +1,72 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useRef, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import styles from "./Joystick.module.css";
 import { moveLeft, softDrop, moveRight } from "../playfield/playfieldSlice";
 import { rotateRight } from "../tetromino/tetrominoSlice";
 import { selectControl } from "../tetromino/tetrominoSelectors";
+import { selectSpeed } from "../scoreboard/scoreboardSlice";
 
 // type Control = "rotateRight" | "softDrop" | "moveLeft" | "moveRight";
+// const keyBoard = {
+//   'esc': 'pause',
+//   'z': 'rotateLeft',
+//   'c': 'hold',
+//   'space': 'hardDrop',
+//   'up': 'rotateRight',
+//   'right': 'moveRight',
+//   'down': 'softDrop',
+//   'left': 'moveLeft'
+// }
+
+// 键盘事件 keyCode 别名
+// const KeyCodeMap = {
+//   esc: 27,
+//   z: 90,
+//   c: 67,
+//   space: 32,
+//   up: 38,
+//   right: 39,
+//   down: 40,
+//   left: 37,
+// };
+
+const useInterval = (callback: () => void, delay: number, pause: boolean) => {
+  const timerRef = useRef<() => void>()
+
+  timerRef.current = callback;
+
+  useEffect(() => {
+    if (pause === true) return;
+
+    const tick = () => timerRef.current?.()
+
+    const id = setInterval(tick, delay)
+    return () => clearInterval(id)
+  }, [delay, pause])
+}
+
+const useControl = (allow: boolean, action: any) => {
+  const dispatch = useDispatch();
+
+  return useCallback(() => {
+    if (allow) {
+      dispatch(action)
+    }
+  }, [allow, action, dispatch])
+}
+
+const useClick = (bem: string, handler: EventListenerOrEventListenerObject) => {
+  const eles = Array.from(document.getElementsByClassName(bem))
+
+  useEffect(() => {
+    eles.forEach((ele) => ele.addEventListener('click', handler))
+
+    return () => {
+      eles.forEach((ele) => ele.removeEventListener('click', handler))
+    };
+  }, [eles, handler]);
+}
 
 /* Matrix 模块渲染游戏场地
 长10x高20
@@ -17,46 +77,35 @@ import { selectControl } from "../tetromino/tetrominoSelectors";
 */
 export function Joystick() {
   const dispatch = useDispatch();
-  // x取值范围最大是[0,9]，减去方块长度，是当前能移动的范围
+
+  const speed = useSelector(selectSpeed)
+  const [pause, setPause] = useState(true)
+
   const control = useSelector(selectControl);
-  // 事件绑定，先上下左右4个按钮看看
-  // 键盘事件、触摸事件、鼠标事件
-  // TODO：custom hooks
-  const onRotateRight = useCallback(
-    () => {
-      if (control('up')) {
-        dispatch(rotateRight());
-      }
-    },
-    [control, dispatch],
-  );
 
-  const onMoveLeft = useCallback(
-    () => {
-      if (control('left')) {
-        dispatch(moveLeft());
-      }
-    }, [control, dispatch]
-  );
+  // 控制自动下落
+  useInterval(() => {
+    if (control('down')) {
+      dispatch(softDrop());
+    }
+  }, speed, pause)
 
-  const onSoftDrop = useCallback(
-    () => {
-      if (control('down')) {
-        dispatch(softDrop());
-      }
-    }, [control, dispatch]
-  );
+  // 旋转
+  // TODO:一开始不会加载
+  const onRotateRight = useControl(control('up'), rotateRight())
+  useClick(styles.up, () => { onRotateRight(); setPause(false) })
 
-  const onMoveRight = useCallback(
-    () => {
-      if (control('right')) {
-        dispatch(moveRight());
-      }
-    }, [control, dispatch]
-  );
-  // const onMoveRight = () => {
-  //   dispatch(moveRight(border));
-  // };
+  // 右移
+  const onMoveRight = useControl(control('right'), moveRight())
+  useClick(styles.right, () => { onMoveRight(); setPause(false) })
+
+  // 软降
+  const onSoftDrop = useControl(control('down'), softDrop())
+  useClick(styles.down, () => { onSoftDrop(); setPause(false) })
+
+  // 左移
+  const onMoveLeft = useControl(control('left'), moveLeft())
+  useClick(styles.left, () => { onMoveLeft(); setPause(false) })
 
   // dom操作，需要使用useEffect
   useEffect(() => {
@@ -65,45 +114,48 @@ export function Joystick() {
         case 38:
           //上
           onRotateRight();
+          setPause(false)
           break;
         case 40:
           //下
           onSoftDrop();
+          setPause(false)
           break;
         case 37:
           //左
           onMoveLeft();
+          setPause(false)
           break;
 
         case 39:
           onMoveRight();
+          setPause(false)
           break;
         default:
           break;
       }
     }
     window.addEventListener('keydown', handlerKeydown);
-    return function cleanup() {
+    return () => {
       window.removeEventListener('keydown', handlerKeydown);
     };
-    // return window.removeEventListener('keydown', handleKeydown)
   }, [onRotateRight, onSoftDrop, onMoveLeft, onMoveRight, dispatch])
 
 
   return (
-    // 绘制摇杆
+    // 绘制摇杆 用icon会更好看些
     <div className={styles.joystick}>
       <div className={styles.direction}>
         <div className={styles.gap} />
-        <button className={styles.up} type="button" onClick={onRotateRight} />
+        <button className={styles.up} type="button" />
         <div className={styles.gap} />
 
-        <button className={styles.left} type="button" onClick={onMoveLeft} />
+        <button className={styles.left} type="button" />
         <div className={styles.gap} />
-        <button className={styles.right} type="button" onClick={onMoveRight} />
+        <button className={styles.right} type="button" />
 
         <div className={styles.gap} />
-        <button className={styles.down} type="button" onClick={onSoftDrop} />
+        <button className={styles.down} type="button" />
         <div className={styles.gap} />
       </div>
       <div className={styles.AB}>
@@ -111,7 +163,7 @@ export function Joystick() {
         <button className={styles.B} type="button" />
       </div>
       <div className={styles.start}>
-        <button className={styles.pause} type="button" />
+        <button className={styles.pause} type="button" onClick={() => { setPause(!pause) }} />
         <button className={styles.reset} type="button" />
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import "./Playfield.css";
@@ -7,7 +7,7 @@ import {
   disappear,
   reDrop,
   wallkick,
-  selectCompletedLines
+  selectCompletedLines,
 } from "./playfieldSlice";
 import { Matrix } from "../../components/matrix/Matrix";
 import { getNextShape } from "../tetromino/tetrominoSlice";
@@ -16,7 +16,7 @@ import {
   selectDrop,
   selectOffset,
 } from "../tetromino/tetrominoSelectors";
-import { grant, completedLines } from "../scoreboard/scoreboardSlice";
+import { selectDelay, grant, completedLines } from "../scoreboard/scoreboardSlice";
 
 /* Playfield 模块渲染游戏场地
 长10x高20
@@ -36,18 +36,18 @@ export function Playfield() {
     }
   }, [offset, dispatch])
 
-
   const current = useSelector(selectCurrent);
   const drop = useSelector(selectDrop);
+  const delay = useSelector(selectDelay)
 
   // 判断游戏是否结束
-  // if (stopDrop === 0) {
+  // if (!drop&& y<0) {
   // gameover
   // }
 
   // 不能继续下落，期望只有当blocks发生改变才执行相关代码
   // 同步派发动作
-  useEffect(() => {
+  const next = useCallback(() => {
     if (!drop) {
       dispatch(fillUp(current));
       // 此时触发下一个方块
@@ -57,6 +57,10 @@ export function Playfield() {
     }
   }, [drop, current, dispatch])
 
+  useEffect(() => {
+    const id = setTimeout(next, delay);
+    return () => clearTimeout(id)
+  },[next, delay])
 
   const lines = useSelector(selectCompletedLines)
   // 判断是否消除，可以异步但没必要
@@ -68,7 +72,7 @@ export function Playfield() {
     }
   }, [lines, dispatch])
 
-  // 游戏的开始和暂停，应该由最终容器控制
+  // TODO:每10行升一级
 
   return (
     // 将playfield数据映射成20x10的方格
