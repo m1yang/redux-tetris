@@ -7,6 +7,10 @@ import {
   disappear,
   reDrop,
   wallkick,
+  gameState,
+  reset,
+  selectCurrentLine,
+  selectGameState,
   selectCompletedLines,
 } from "./playfieldSlice";
 import { Matrix } from "../../components/matrix/Matrix";
@@ -17,6 +21,7 @@ import {
   selectOffset,
 } from "../tetromino/tetrominoSelectors";
 import { selectDelay, grant, completedLines } from "../scoreboard/scoreboardSlice";
+import { Popup } from "./Popup";
 
 /* Playfield 模块渲染游戏场地
 长10x高20
@@ -39,11 +44,14 @@ export function Playfield() {
   const current = useSelector(selectCurrent);
   const drop = useSelector(selectDrop);
   const delay = useSelector(selectDelay)
+  const curLine = useSelector(selectCurrentLine)
 
   // 判断游戏是否结束
-  // if (!drop&& y<0) {
-  // gameover
-  // }
+  useEffect(() => {
+    if (!drop && curLine < 0) {
+      dispatch(gameState('over'))
+    }
+  }, [drop, curLine, dispatch])
 
   // 不能继续下落，期望只有当blocks发生改变才执行相关代码
   // 同步派发动作
@@ -60,7 +68,7 @@ export function Playfield() {
   useEffect(() => {
     const id = setTimeout(next, delay);
     return () => clearTimeout(id)
-  },[next, delay])
+  }, [next, delay])
 
   const lines = useSelector(selectCompletedLines)
   // 判断是否消除，可以异步但没必要
@@ -74,10 +82,18 @@ export function Playfield() {
 
   // TODO:每10行升一级
 
+  // TODO:展示界面
+  // 只需要一种状态pause:boolen，游戏结束也是暂停
+  // setState来控制展示开始和结束界面
+  const game = useSelector(selectGameState)
+  const state = game === 'over' ? 0 : 1
+  const fn = game === 'over' ? dispatch(reset()) : dispatch(gameState('start'))
+
   return (
     // 将playfield数据映射成20x10的方格
     <div className="playfield">
       <Matrix cols={10} rows={20} filled={current} />
+      <Popup game={state} fn={fn} />
     </div>
   );
 }

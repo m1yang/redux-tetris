@@ -1,5 +1,9 @@
 /* playing field */
 .playfield {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  position: relative;
   border: solid #000;
   padding: 2px;
   margin: 2px;

@@ -2,14 +2,18 @@ import { createSlice, PayloadAction, createSelector } from "@reduxjs/toolkit";
 import { Blocks, Position } from "../../common/types";
 import { RootState } from "../../app/store";
 
+type GameState = 'over'|'start'| 'pause'
+
 interface PlayfieldState {
   axis: Position;
   filled: Blocks;
+  game: GameState
 }
 
 const initialState: PlayfieldState = {
   axis: { x: 4, y: -2 },
   filled: {},
+  game: 'pause'
 };
 
 // var omit = (obj, ukey) => Object.keys(obj).reduce((acc, key) =>
@@ -42,8 +46,8 @@ export const playfieldSlice = createSlice({
       },
     },
 
-    stop: (state, action: PayloadAction<number>) => {
-      // 暂停是否需要做持久化,如果不做会导致刷新后读取初始值自动开始或暂停
+    gameState: (state, {payload}: PayloadAction<GameState>) => {
+      state.game = payload
     },
     reset: (state) => {
       state.filled = {};
@@ -83,6 +87,8 @@ export const playfieldSlice = createSlice({
 
 export const {
   disappear,
+  gameState,
+  reset,
   softDrop,
   moveLeft,
   moveRight,
@@ -106,4 +112,14 @@ export const selectCompletedLines = createSelector(
     }
     return rows
   }
+)
+
+export const selectCurrentLine = createSelector(
+  (state: RootState) => state.playfield.axis.y,
+  (y) => y
+)
+
+export const selectGameState = createSelector(
+  (state: RootState) => state.playfield.game,
+  (game) => game
 )
