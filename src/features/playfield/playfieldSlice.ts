@@ -1,19 +1,18 @@
 import { createSlice, PayloadAction, createSelector } from "@reduxjs/toolkit";
 import { Blocks, Position } from "../../common/types";
-import { RootState } from "../../app/store";
-
-type GameState = 'over'|'start'| 'pause'
+import { RootState, AppThunk } from "../../app/store";
+import { getNextShape } from "../tetromino/tetrominoSlice";
 
 interface PlayfieldState {
   axis: Position;
   filled: Blocks;
-  game: GameState
+  pause: boolean
 }
 
 const initialState: PlayfieldState = {
   axis: { x: 4, y: -2 },
   filled: {},
-  game: 'pause'
+  pause: true
 };
 
 // var omit = (obj, ukey) => Object.keys(obj).reduce((acc, key) =>
@@ -45,9 +44,9 @@ export const playfieldSlice = createSlice({
         return { payload: line };
       },
     },
-
-    gameState: (state, {payload}: PayloadAction<GameState>) => {
-      state.game = payload
+    // TODO: 是否可以不接收参数，直接state.pause = !state.pause
+    onPause: (state, { payload }: PayloadAction<boolean>) => {
+      state.pause = payload
     },
     reset: (state) => {
       state.filled = {};
@@ -87,7 +86,7 @@ export const playfieldSlice = createSlice({
 
 export const {
   disappear,
-  gameState,
+  onPause,
   reset,
   softDrop,
   moveLeft,
@@ -99,6 +98,21 @@ export const {
 } = playfieldSlice.actions;
 
 export default playfieldSlice.reducer;
+
+// 延时代码也可以通过这样的方式添加
+export const setNextShape = (): AppThunk => async dispatch => {
+  // 重置定位点
+  dispatch(reDrop());
+    // 触发下一个方块
+    dispatch(getNextShape());
+}
+
+export const resetAll = ():AppThunk => async dispatch => {
+  dispatch(reset())
+  dispatch(getNextShape())
+  dispatch(reDrop())
+  dispatch(onPause(false))
+}
 
 // playfield组件判断当前数据是否存在长度满格的，存在就调用该计算
 export const selectCompletedLines = createSelector(
@@ -112,14 +126,4 @@ export const selectCompletedLines = createSelector(
     }
     return rows
   }
-)
-
-export const selectCurrentLine = createSelector(
-  (state: RootState) => state.playfield.axis.y,
-  (y) => y
-)
-
-export const selectGameState = createSelector(
-  (state: RootState) => state.playfield.game,
-  (game) => game
 )

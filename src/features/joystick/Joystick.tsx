@@ -1,11 +1,12 @@
-import React, { useEffect, useCallback, useRef, useState } from "react";
+import React, { useEffect, useCallback, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import styles from "./Joystick.module.css";
-import { moveLeft, softDrop, moveRight } from "../playfield/playfieldSlice";
+import { moveLeft, softDrop, moveRight, onPause, reset } from "../playfield/playfieldSlice";
 import { rotateRight } from "../tetromino/tetrominoSlice";
 import { selectControl } from "../tetromino/tetrominoSelectors";
 import { selectSpeed } from "../scoreboard/scoreboardSlice";
+import { RootState } from "../../app/store";
 
 // type Control = "rotateRight" | "softDrop" | "moveLeft" | "moveRight";
 // const keyBoard = {
@@ -79,7 +80,10 @@ export function Joystick() {
   const dispatch = useDispatch();
 
   const speed = useSelector(selectSpeed)
-  const [pause, setPause] = useState(true)
+  // 操作的pause和界面的pause统一
+  const paused = useSelector((state: RootState) => state.playfield.pause)
+
+  // const [pause, setPause] = useState(true)
 
   const control = useSelector(selectControl);
 
@@ -88,24 +92,29 @@ export function Joystick() {
     if (control('down')) {
       dispatch(softDrop());
     }
-  }, speed, pause)
+  }, speed, paused)
+
+  const offPause = useCallback(() => {
+    if (paused) {
+      dispatch(onPause(false))
+    }
+  }, [paused, dispatch])
 
   // 旋转
-  // TODO:一开始不会加载
   const onRotateRight = useControl(control('up'), rotateRight())
-  useClick(styles.up, () => { onRotateRight(); setPause(false) })
+  useClick(styles.up, () => { onRotateRight(); offPause() })
 
   // 右移
   const onMoveRight = useControl(control('right'), moveRight())
-  useClick(styles.right, () => { onMoveRight(); setPause(false) })
+  useClick(styles.right, () => { onMoveRight(); offPause() })
 
   // 软降
   const onSoftDrop = useControl(control('down'), softDrop())
-  useClick(styles.down, () => { onSoftDrop(); setPause(false) })
+  useClick(styles.down, () => { onSoftDrop(); offPause() })
 
   // 左移
   const onMoveLeft = useControl(control('left'), moveLeft())
-  useClick(styles.left, () => { onMoveLeft(); setPause(false) })
+  useClick(styles.left, () => { onMoveLeft(); offPause() })
 
   // dom操作，需要使用useEffect
   useEffect(() => {
@@ -114,22 +123,22 @@ export function Joystick() {
         case 38:
           //上
           onRotateRight();
-          setPause(false)
+          offPause()
           break;
         case 40:
           //下
           onSoftDrop();
-          setPause(false)
+          offPause()
           break;
         case 37:
           //左
           onMoveLeft();
-          setPause(false)
+          offPause()
           break;
 
         case 39:
           onMoveRight();
-          setPause(false)
+          offPause()
           break;
         default:
           break;
@@ -139,7 +148,7 @@ export function Joystick() {
     return () => {
       window.removeEventListener('keydown', handlerKeydown);
     };
-  }, [onRotateRight, onSoftDrop, onMoveLeft, onMoveRight, dispatch])
+  }, [onRotateRight, onSoftDrop, onMoveLeft, onMoveRight, offPause, dispatch])
 
 
   return (
@@ -163,8 +172,12 @@ export function Joystick() {
         <button className={styles.B} type="button" />
       </div>
       <div className={styles.start}>
-        <button className={styles.pause} type="button" onClick={() => { setPause(!pause) }} />
-        <button className={styles.reset} type="button" />
+        <button className={styles.pause}
+          type="button"
+          onClick={() => { dispatch(onPause(!paused)) }} />
+        <button className={styles.reset}
+          type="button"
+          onClick={() => { dispatch(reset()) }} />
       </div>
     </div>
   );
