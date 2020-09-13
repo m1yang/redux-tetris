@@ -2,9 +2,9 @@ import React, { useEffect, useCallback, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import styles from "./Joystick.module.css";
-import { moveLeft, softDrop, moveRight, onPause, reset } from "../playfield/playfieldSlice";
-import { rotateRight } from "../tetromino/tetrominoSlice";
-import { selectControl } from "../tetromino/tetrominoSelectors";
+import { moveLeft, softDrop, moveRight, onPause, hardDrop, resetAll } from "../playfield/playfieldSlice";
+import { rotateRight, rotateLeft } from "../tetromino/tetrominoSlice";
+import { selectControl, selectBottom } from "../tetromino/tetrominoSelectors";
 import { selectSpeed } from "../scoreboard/scoreboardSlice";
 import { RootState } from "../../app/store";
 
@@ -100,7 +100,7 @@ export function Joystick() {
     }
   }, [paused, dispatch])
 
-  // 旋转
+  // 旋转 顺时针
   const onRotateRight = useControl(control('up'), rotateRight())
   useClick(styles.up, () => { onRotateRight(); offPause() })
 
@@ -115,6 +115,15 @@ export function Joystick() {
   // 左移
   const onMoveLeft = useControl(control('left'), moveLeft())
   useClick(styles.left, () => { onMoveLeft(); offPause() })
+
+  // 旋转 逆时针
+  const onRotateLeft = useControl(control('up'), rotateLeft())
+  useClick(styles.A, () => { onRotateLeft(); offPause() })
+
+    // 硬降
+    const bottom = useSelector(selectBottom)
+    const onHardDrop = useControl(control('down'), hardDrop(bottom))
+    useClick(styles.B, () => { onHardDrop(); offPause() })
 
   // dom操作，需要使用useEffect
   useEffect(() => {
@@ -177,7 +186,7 @@ export function Joystick() {
           onClick={() => { dispatch(onPause(!paused)) }} />
         <button className={styles.reset}
           type="button"
-          onClick={() => { dispatch(reset()) }} />
+          onClick={() => { dispatch(resetAll()) }} />
       </div>
     </div>
   );

@@ -28,14 +28,15 @@ export const playfieldSlice = createSlice({
     disappear: {
       reducer: (state, { payload }: PayloadAction<number[]>) => {
         // 通过比较和消除的行比较，filled数据依次覆盖下一行数据
-        const clear1line = (line: number, filled: Blocks) => Object.keys(filled).reduce((acc, cur) => {
-          const row = Number(cur)
-          return row === line ?
-            acc : {
-              ...acc,
-              [row < line ? row + 1 : row]: filled[row]
-            }
-        }, {} as Blocks)
+        const clear1line = (line: number, filled: Blocks) =>
+          Object.keys(filled).reduce((acc, cur) => {
+            const row = Number(cur)
+            return row === line ?
+              acc : {
+                ...acc,
+                [row < line ? row + 1 : row]: filled[row]
+              }
+          }, {} as Blocks)
 
         state.filled = payload.reduce((acc, v) => clear1line(v, acc)
           , state.filled)
@@ -103,15 +104,15 @@ export default playfieldSlice.reducer;
 export const setNextShape = (): AppThunk => async dispatch => {
   // 重置定位点
   dispatch(reDrop());
-    // 触发下一个方块
-    dispatch(getNextShape());
+  // 触发下一个方块
+  dispatch(getNextShape());
 }
 
-export const resetAll = ():AppThunk => async dispatch => {
+export const resetAll = (): AppThunk => async dispatch => {
   dispatch(reset())
   dispatch(getNextShape())
   dispatch(reDrop())
-  dispatch(onPause(false))
+  dispatch(onPause(true))
 }
 
 // playfield组件判断当前数据是否存在长度满格的，存在就调用该计算

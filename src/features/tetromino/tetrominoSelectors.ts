@@ -136,6 +136,58 @@ const canMove = (
   return true;
 }
 
+// 计算方块可移动范围 horizontal
+// 将方块压扁，计入坐标后，遍历矩阵，查看比y轴大的每一行是否有相同的值
+// 如果没有就返回y轴最大值19。如果有，就返回这一行，
+// 因为对象会自动排序，所以有结果就直接返回
+// TODO：压扁还是会有bug，所以得改成1行是否有，再遍历多行
+const getLimitedY = (
+  pieces: number[][],
+  { x, y }: Position,
+  blocks: Blocks,
+) => {
+  // 如果方块的原始结构变动，pieces[0]这里可能会有bug
+  const flatten = Array.from({ length: pieces[0].length }, (_, i) => i + x)
+  const flat = pieces.length
+
+  for (const key of Object.keys(blocks)) {
+    const row = Number(key)
+    if (row > y && blocks[row].some(v => flatten.includes(v))) {
+      return row - flat
+    }
+  }
+  return 20 - flat
+}
+
+const getAllPoint = (
+  { x, y }: Position,
+  pieces: number[][]
+) => {
+  let points: Array<Position> = []
+  pieces.forEach((v, row) => {
+    v.forEach((val, col) => {
+      if (val) {
+        points.push({ x: x + col, y: y + row })
+      }
+    })
+  })
+  return points
+}
+
+const isFilled = (
+  { x, y }: Position,
+  bloks: Blocks
+) => {
+  // if (Object.prototype.hasOwnProperty.call(bloks, y)) {
+  //   return bloks[y].includes(x)
+  // }
+  // return false
+  if (bloks[y].includes(x)) {
+    return { x, y }
+  }
+  return false
+}
+
 /* next */
 // 计算下一个填充方块，方向和位置是固定的
 export const selectNext = createSelector(
@@ -206,6 +258,14 @@ export const selectDrop = createSelector(
   selectControl,
   (control) => control('down')
 );
+
+// 计算下落到底
+export const selectBottom = createSelector(
+  selectRotation,
+  (state: RootState) => state.playfield.axis,
+  (state: RootState) => state.playfield.filled,
+  (shape, axis, filled) => getLimitedY(shape, axis, filled)
+)
 
 // 踢墙 x的取值范围为[0~10-length] 
 // 田园Go风格，有超出范围就返回该范围，没有就返回false

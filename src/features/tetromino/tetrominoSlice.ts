@@ -59,6 +59,6 @@ export const tetrominoSlice = createSlice({
   },
 });
 
-export const { rotateRight, getNextShape } = tetrominoSlice.actions;
+export const { rotateRight,rotateLeft, getNextShape } = tetrominoSlice.actions;
 
 export default tetrominoSlice.reducer;
