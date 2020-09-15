@@ -46,18 +46,19 @@ export function Playfield() {
   const delay = useSelector(selectDelay)
   const curLine = useSelector((state: RootState) => state.playfield.axis.y)
 
+  let overflow = curLine < 0
+
   // 判断游戏是否结束
   useEffect(() => {
-    if (!drop && curLine < 0) {
+    if (!drop && overflow) {
       dispatch(onPause(true))
       setStart(false)
     }
-  }, [drop, curLine, dispatch])
+  }, [drop, overflow, dispatch])
 
   // 不能继续下落，期望只有当blocks发生改变才执行相关代码
-  // TODO:curLine>=0可以优化，直接返回true or false，这样记忆功能才能生效
   const next = useCallback(() => {
-    if (!drop && curLine >= 0) {
+    if (!drop && !overflow) {
       dispatch(fillUp(current));
       // // 此时触发下一个方块
       // dispatch(getNextShape());
@@ -65,7 +66,7 @@ export function Playfield() {
       // dispatch(reDrop());
       dispatch(setNextShape())
     }
-  }, [drop, current, curLine, dispatch])
+  }, [drop, current, overflow, dispatch])
 
   useEffect(() => {
     const id = setTimeout(next, delay);
@@ -81,8 +82,6 @@ export function Playfield() {
       dispatch(grant());
     }
   }, [lines, dispatch])
-
-  // TODO:每10行升一级
 
   // 重置 考虑做成Thunk
   const resetAll = () => {

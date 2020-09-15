@@ -42,8 +42,8 @@ const useInterval = (callback: () => void, delay: number, pause: boolean) => {
 
     const tick = () => timerRef.current?.()
 
-    const id = setInterval(tick, delay)
-    return () => clearInterval(id)
+    const timerID = setInterval(tick, delay)
+    return () => clearInterval(timerID)
   }, [delay, pause])
 }
 
@@ -120,32 +120,32 @@ export function Joystick() {
   const onRotateLeft = useControl(control('up'), rotateLeft())
   useClick(styles.A, () => { onRotateLeft(); offPause() })
 
-    // 硬降
-    const bottom = useSelector(selectBottom)
-    const onHardDrop = useControl(control('down'), hardDrop(bottom))
-    useClick(styles.B, () => { onHardDrop(); offPause() })
+  // 硬降
+  const bottom = useSelector(selectBottom)
+  const onHardDrop = useControl(control('down'), hardDrop(bottom.y))
+  useClick(styles.B, () => { onHardDrop(); offPause() })
 
-  // dom操作，需要使用useEffect
+  // 需要使用useEffect
   useEffect(() => {
     const handlerKeydown: (this: Window, ev: KeyboardEvent) => any = (ev) => {
-      switch (ev.keyCode) {
-        case 38:
+      switch (ev.key) {
+        case "ArrowUp":
           //上
           onRotateRight();
           offPause()
           break;
-        case 40:
+        case "ArrowDown":
           //下
           onSoftDrop();
           offPause()
           break;
-        case 37:
+        case "ArrowLeft":
           //左
           onMoveLeft();
           offPause()
           break;
 
-        case 39:
+        case "ArrowRight":
           onMoveRight();
           offPause()
           break;

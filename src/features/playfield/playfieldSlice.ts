@@ -1,10 +1,10 @@
 import { createSlice, PayloadAction, createSelector } from "@reduxjs/toolkit";
-import { Blocks, Position } from "../../common/types";
+import { Blocks, Point } from "../../common/types";
 import { RootState, AppThunk } from "../../app/store";
 import { getNextShape } from "../tetromino/tetrominoSlice";
 
 interface PlayfieldState {
-  axis: Position;
+  axis: Point;
   filled: Blocks;
   pause: boolean
 }

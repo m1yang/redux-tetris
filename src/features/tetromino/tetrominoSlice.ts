@@ -2,17 +2,17 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 type Shape = "I" | "O" | "T" | "L" | "J" | "Z" | "S";
 
-// 逆时针方向
+// 顺时针方向
 enum Direction {
   Up = 0,
-  Left,
-  Down,
   Right,
+  Down,
+  Left,
 }
 
 interface TetrominoState {
   currentShape: Shape;
-  direction: Direction;
+  direct: Direction;
   nextShape: Shape[];
 }
 
@@ -24,7 +24,7 @@ const randomizer = () => {
 
 const initialState: TetrominoState = {
   currentShape: randomizer(),
-  direction: 0,
+  direct: 0,
   nextShape: [randomizer()],
 };
 
@@ -33,16 +33,14 @@ export const tetrominoSlice = createSlice({
   initialState,
   reducers: {
     rotateRight: (state) => {
-      const direct = state.direction;
+      const direct = state.direct;
       // 上下左右只有4个方位,增长到最大值后重置当前进度
-      // state.direction = direction < 4 ? direction + 1 : 1;
-      state.direction = direct > 0 ? direct - 1 : 3; // 也可以不重置以记录旋转的次数
-      // state.direction = direction + 1;
+      state.direct = direct < 3 ? direct + 1 : 0;
+      // state.direction += 1; // 不重置进度
     },
     rotateLeft: (state) => {
-      // 上下左右只有4个方位,减小到最小值后重置当前进度
-      // state.direction = direction > 1 ? direction - 1 : 4;
-      state.direction += 1;
+      const direct = state.direct;
+      state.direct = direct > 0 ? direct - 1 : 3;
     },
     getNextShape: {
       reducer: (state, { payload }: PayloadAction<Shape>) => {
@@ -50,7 +48,7 @@ export const tetrominoSlice = createSlice({
         // 但是TS要求类型一致，所以不得以加上了随机数
         state.currentShape = state.nextShape.shift() || randomizer();
         state.nextShape.push(payload);
-        state.direction = 0;
+        state.direct = 0;
       },
       prepare: () => {
         return { payload: randomizer() };

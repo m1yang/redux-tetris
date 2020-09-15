@@ -1,13 +1,29 @@
-// Blocks 每一行上固定的方块
-export interface Blocks {
-    [line: number]: number[];
+export type Shape = "I" | "O" | "T" | "L" | "J" | "Z" | "S";
+
+// 顺时针方向
+export enum Direction {
+  Up = 0,
+  Right,
+  Down,
+  Left,
 }
 
-// Tetromino 俄罗斯方块的2维数组形态
-// export type Tetromino = number[][]
+// shape和direct 来描述方块
+export interface Tetromino {
+    shape: Shape
+    direct: Direction
+}
 
-// Position 方块的位置
-export interface Position {
-    x: number;
-    y: number;
+// 用1维数组来表示每个小方块的相对位置
+type Minoes = number[]
+// 用2维数组来表示整个方块
+export type Pieces = Minoes[]
+// 用key-value的格式来表示在哪一行上有哪些方块 
+// e.g.{7:[3,4,5]} 第7行上3、4、5格上有方块
+export type Blocks = {[line: number]: Minoes;}
+
+// 游戏场地上移动的点
+export type Point = {
+    x: number,
+    y: number
 }

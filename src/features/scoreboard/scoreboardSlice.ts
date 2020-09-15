@@ -6,7 +6,7 @@ const speeds = [800, 650, 500, 370, 250, 160];
 const delays = [50, 60, 70, 80, 90, 100];
 
 // bonus points 额外奖励
-// const clearPoints = [100, 300, 500, 800];
+const bonusPoints = [100, 300, 500, 800];
 
 const maxPoint = 999999;
 
@@ -28,13 +28,13 @@ export const boardSlice = createSlice({
   name: "board",
   initialState,
   reducers: {
-    // grant 获取分数
+    // TODO: 额外奖励 grant 获取分数
     grant: (state) => {
       state.score = state.score < maxPoint ? state.score + 100 : state.score;
     },
     // 难度等级提升,最高为5
-    levelUp: (state) => {
-      state.level = state.level > speeds.length ? state.level : state.level + 1;
+    levelUp: (state, { payload }: PayloadAction<number>) => {
+      state.level = payload;
     },
     // 记录清除行数
     completedLines: (state, { payload }: PayloadAction<number>) => {

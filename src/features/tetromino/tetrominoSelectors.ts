@@ -1,34 +1,9 @@
 import { createSelector } from "@reduxjs/toolkit";
 import { RootState } from "../../app/store";
-import { Blocks, Position } from "../../common/types";
-
-/* 
-共有3个功能区和方块有交互：joystick、next、playfield
-设置好基础数据后，最后使用的衍生数据需要计算出来
-joystick模块：
-计算：方块长度
-参数：方块、坐标
-
-next模块：
-计算：方块样式
-参数：方块
-
-playfield模块：
-计算：方块样式
-参数：方块、方向、坐标
----
-计算：方块填充
-参数：方块样式、已填充方块
----
-计算：方块出发点
-参数：方块
----
-计算：墙踢条件
-参数：方块长度、坐标
-*/
+import { Shape, Pieces, Blocks, Point } from "../../common/types";
 
 // 俄罗斯方块的基础模板
-export const shapes = {
+export const shapes: { [shape in Shape]: Pieces } = {
   I: [[1, 1, 1, 1]],
   L: [
     [0, 0, 1],
@@ -57,7 +32,7 @@ export const shapes = {
 };
 
 // 方块旋转功能
-const rotate = (pieces: number[][]) => {
+const rotate = (pieces: Pieces) => {
   return pieces
     .reduce((acc, item) => {
       item.forEach((v, k) => {
@@ -72,7 +47,7 @@ const rotate = (pieces: number[][]) => {
 };
 
 // 缓存旋转结果
-const rotateCache = (item: number[][]) => {
+const rotateCache = (item: Pieces) => {
   let items = [item];
 
   for (
@@ -91,8 +66,8 @@ const rotateCache = (item: number[][]) => {
 // 填充的数据范围受矩阵行和列影响
 const toFill = (
   blocks: Blocks,
-  pieces: number[][],
-  { x, y }: Position
+  pieces: Pieces,
+  { x, y }: Point
 ) => {
   return {
     ...blocks, ...pieces.reduce((acc, value, index) => {
@@ -116,12 +91,11 @@ const toFill = (
   }
 };
 
-// type Moving = (blocks: Blocks,pieces: number[][],{ x, y }: Position) => boolean
 // 判断方块左右是否有已填充方块
 const canMove = (
   blocks: Blocks,
-  pieces: number[][],
-  { x, y }: Position
+  pieces: Pieces,
+  { x, y }: Point
 ) => {
   for (let index = 0; index < pieces.length; index++) {
     const currLine = y + index;
@@ -136,34 +110,11 @@ const canMove = (
   return true;
 }
 
-// 计算方块可移动范围 horizontal
-// 将方块压扁，计入坐标后，遍历矩阵，查看比y轴大的每一行是否有相同的值
-// 如果没有就返回y轴最大值19。如果有，就返回这一行，
-// 因为对象会自动排序，所以有结果就直接返回
-// TODO：压扁还是会有bug，所以得改成1行是否有，再遍历多行
-const getLimitedY = (
-  pieces: number[][],
-  { x, y }: Position,
-  blocks: Blocks,
-) => {
-  // 如果方块的原始结构变动，pieces[0]这里可能会有bug
-  const flatten = Array.from({ length: pieces[0].length }, (_, i) => i + x)
-  const flat = pieces.length
-
-  for (const key of Object.keys(blocks)) {
-    const row = Number(key)
-    if (row > y && blocks[row].some(v => flatten.includes(v))) {
-      return row - flat
-    }
-  }
-  return 20 - flat
-}
-
 const getAllPoint = (
-  { x, y }: Position,
-  pieces: number[][]
+  { x, y }: Point,
+  pieces: Pieces
 ) => {
-  let points: Array<Position> = []
+  let points: Array<Point> = []
   pieces.forEach((v, row) => {
     v.forEach((val, col) => {
       if (val) {
@@ -175,17 +126,16 @@ const getAllPoint = (
 }
 
 const isFilled = (
-  { x, y }: Position,
-  bloks: Blocks
+  { x, y }: Point,
+  blocks: Blocks
 ) => {
-  // if (Object.prototype.hasOwnProperty.call(bloks, y)) {
-  //   return bloks[y].includes(x)
-  // }
-  // return false
-  if (bloks[y].includes(x)) {
-    return { x, y }
+  for (const key of Object.keys(blocks)) {
+    const row = Number(key)
+    if (row > y && blocks[row].includes(x)) {
+      return row
+    }
   }
-  return false
+  return 20
 }
 
 /* next */
@@ -195,17 +145,17 @@ export const selectNext = createSelector(
   (shape) => {
     const next = shape[0]
     const filled: Blocks = {};
-    const position: Position = { x: 0, y: 0 }
-    const result = toFill(filled, shapes[next], { ...position });
+    const startLocations: Point = { x: 0, y: 0 }
+    const result = toFill(filled, shapes[next], { ...startLocations });
     return result;
   }
 );
 
 /* joystick */
 // 计算当前方向的方块
-const selectRotation = createSelector(
+export const selectRotation = createSelector(
   (state: RootState) => state.tetromino.currentShape,
-  (state: RootState) => state.tetromino.direction,
+  (state: RootState) => state.tetromino.direct,
   (shape, direction) => {
     const results = rotateCache(shapes[shape]);
     // 对获取的direction取余，避免受边界大小影响
@@ -264,7 +214,17 @@ export const selectBottom = createSelector(
   selectRotation,
   (state: RootState) => state.playfield.axis,
   (state: RootState) => state.playfield.filled,
-  (shape, axis, filled) => getLimitedY(shape, axis, filled)
+  (shape, axis, filled) => {
+    const points = getAllPoint(axis, shape)
+    // 默认值y轴最大值
+    let high = 20
+    // 循环4个点来判断方块可以硬降的位置
+    points.forEach(v => {
+      const tmp = isFilled(v, filled) - v.y
+      high = tmp < high ? tmp : high
+    })
+    return { x: axis.x, y: axis.y + high - 1 }
+  }
 )
 
 // 踢墙 x的取值范围为[0~10-length] 
