@@ -1,9 +1,9 @@
 import { createSelector } from "@reduxjs/toolkit";
 import { RootState } from "../../app/store";
-import { Shape, Pieces, Blocks, Point } from "../../common/types";
+import { Shape, Tetromino, Blocks, Point } from "../../common/types";
 
 // 俄罗斯方块的基础模板
-export const shapes: { [shape in Shape]: Pieces } = {
+export const shapes: { [shape in Shape]: Tetromino } = {
   I: [[1, 1, 1, 1]],
   L: [
     [0, 0, 1],
@@ -31,9 +31,19 @@ export const shapes: { [shape in Shape]: Pieces } = {
   ],
 };
 
+const midPoint ={
+  I: [-1, 0],
+  L: [-1, -1],
+  J: [-1, -1],
+  Z: [-1, -1],
+  S: [-1, -1],
+  O: [0, -1],
+  T: [-1, -1],
+}
+
 // 方块旋转功能
-const rotate = (pieces: Pieces) => {
-  return pieces
+const rotate = (tetrads: Tetromino) => {
+  return tetrads
     .reduce((acc, item) => {
       item.forEach((v, k) => {
         if (acc[k] === undefined) {
@@ -47,7 +57,7 @@ const rotate = (pieces: Pieces) => {
 };
 
 // 缓存旋转结果
-const rotateCache = (item: Pieces) => {
+const rotateCache = (item: Tetromino) => {
   let items = [item];
 
   for (
@@ -66,11 +76,11 @@ const rotateCache = (item: Pieces) => {
 // 填充的数据范围受矩阵行和列影响
 const toFill = (
   blocks: Blocks,
-  pieces: Pieces,
+  tetrads: Tetromino,
   { x, y }: Point
 ) => {
   return {
-    ...blocks, ...pieces.reduce((acc, value, index) => {
+    ...blocks, ...tetrads.reduce((acc, value, index) => {
       const rows = index + y;
       if (rows < 0) {
         return acc
@@ -94,12 +104,12 @@ const toFill = (
 // 判断方块左右是否有已填充方块
 const canMove = (
   blocks: Blocks,
-  pieces: Pieces,
+  tetrads: Tetromino,
   { x, y }: Point
 ) => {
-  for (let index = 0; index < pieces.length; index++) {
+  for (let index = 0; index < tetrads.length; index++) {
     const currLine = y + index;
-    const value = pieces[index];
+    const value = tetrads[index];
 
     if (blocks[currLine] &&
       value.some((v, i) => v !== 0 && blocks[currLine].includes(i + x))
@@ -112,10 +122,10 @@ const canMove = (
 
 const getAllPoint = (
   { x, y }: Point,
-  pieces: Pieces
+  tetrads: Tetromino
 ) => {
   let points: Array<Point> = []
-  pieces.forEach((v, row) => {
+  tetrads.forEach((v, row) => {
     v.forEach((val, col) => {
       if (val) {
         points.push({ x: x + col, y: y + row })
@@ -123,6 +133,26 @@ const getAllPoint = (
     })
   })
   return points
+}
+
+// 通过Point和Tetromino计算出方块在矩阵中的位置
+const convertToBlocks = (
+  tetrads: Tetromino,
+  { x, y }: Point,
+) => tetrads.reduce((acc, value, index) => {
+  acc[index + y] = value.flatMap((v, i) => v === 0 ? [] : [i + x])
+  return acc
+}, {} as Blocks)
+
+// 在Point不变的情况下，通过设置一个中心点，改变方块的相对位置
+const getMidPoint = (
+  shape: Shape,
+  { x, y }: Point,
+) => {
+  return {
+    x: x + midPoint[shape][0],
+    y: y + midPoint[shape][1],
+  } as Point
 }
 
 const isFilled = (
@@ -145,7 +175,7 @@ export const selectNext = createSelector(
   (shape) => {
     const next = shape[0]
     const filled: Blocks = {};
-    const startLocations: Point = { x: 0, y: 0 }
+    const startLocations: Point = getMidPoint(next, { x: 1, y: 1 })
     const result = toFill(filled, shapes[next], { ...startLocations });
     return result;
   }
@@ -166,13 +196,13 @@ export const selectRotation = createSelector(
 
 export const selectControl = createSelector(
   selectRotation,
-  (state: RootState) => state.playfield.axis,
+  (state: RootState) => state.playfield.point,
   (state: RootState) => state.playfield.filled,
-  (shape, axis, filled) => (
+  (shape, point, filled) => (
     action: string,
   ) => {
-    const x = axis.x
-    const y = axis.y
+    const x = point.x
+    const y = point.y
     // 预测是否能执行下一步操作
     const move2next: { [action: string]: boolean } = {
       'up': canMove(filled, rotate(shape), { x, y }),
@@ -195,10 +225,10 @@ export const selectControl = createSelector(
 // 计算当前填充方块
 export const selectCurrent = createSelector(
   selectRotation,
-  (state: RootState) => state.playfield.axis,
+  (state: RootState) => state.playfield.point,
   (state: RootState) => state.playfield.filled,
-  (shape, axis, filled) => {
-    const result = toFill(filled, shape, { ...axis });
+  (shape, point, filled) => {
+    const result = toFill(filled, shape, { ...point });
     return result;
   }
 );
@@ -212,10 +242,10 @@ export const selectDrop = createSelector(
 // 计算下落到底
 export const selectBottom = createSelector(
   selectRotation,
-  (state: RootState) => state.playfield.axis,
+  (state: RootState) => state.playfield.point,
   (state: RootState) => state.playfield.filled,
-  (shape, axis, filled) => {
-    const points = getAllPoint(axis, shape)
+  (shape, point, filled) => {
+    const points = getAllPoint(point, shape)
     // 默认值y轴最大值
     let high = 20
     // 循环4个点来判断方块可以硬降的位置
@@ -223,7 +253,7 @@ export const selectBottom = createSelector(
       const tmp = isFilled(v, filled) - v.y
       high = tmp < high ? tmp : high
     })
-    return { x: axis.x, y: axis.y + high - 1 }
+    return { x: point.x, y: point.y + high - 1 }
   }
 )
 
@@ -231,9 +261,9 @@ export const selectBottom = createSelector(
 // 田园Go风格，有超出范围就返回该范围，没有就返回false
 export const selectOffset = createSelector(
   selectRotation,
-  (state: RootState) => state.playfield.axis,
-  (shape, axis) => {
-    const offset = shape[0].length + axis.x - 10
+  (state: RootState) => state.playfield.point,
+  (shape, point) => {
+    const offset = shape[0].length + point.x - 10
     return offset > 0 ? offset : false;
   }
 );

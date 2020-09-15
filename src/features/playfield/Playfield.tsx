@@ -44,7 +44,7 @@ export function Playfield() {
   const current = useSelector(selectCurrent);
   const drop = useSelector(selectDrop);
   const delay = useSelector(selectDelay)
-  const curLine = useSelector((state: RootState) => state.playfield.axis.y)
+  const curLine = useSelector((state: RootState) => state.playfield.point.y)
 
   let overflow = curLine < 0
 

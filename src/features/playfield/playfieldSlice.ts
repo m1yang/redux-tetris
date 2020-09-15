@@ -4,13 +4,13 @@ import { RootState, AppThunk } from "../../app/store";
 import { getNextShape } from "../tetromino/tetrominoSlice";
 
 interface PlayfieldState {
-  axis: Point;
+  point: Point;
   filled: Blocks;
   pause: boolean
 }
 
 const initialState: PlayfieldState = {
-  axis: { x: 4, y: -2 },
+  point: { x: 4, y: -2 },
   filled: {},
   pause: true
 };
@@ -54,33 +54,33 @@ export const playfieldSlice = createSlice({
     },
     // 边界问题，能否直接硬编码，要灵活的话，就传入边界值
     softDrop: (state) => {
-      // let y = state.axis.y;
-      // state.axis.y = y > 20 ? 20 : y + 1;
-      state.axis.y += 1
+      // let y = state.point.y;
+      // state.point.y = y > 20 ? 20 : y + 1;
+      state.point.y += 1
     },
     moveLeft: (state) => {
-      // let x = state.axis.x;
+      // let x = state.point.x;
       // // 最小值是0
-      // state.axis.x = x > 0 ? x - 1 : 0;
-      state.axis.x -= 1
+      // state.point.x = x > 0 ? x - 1 : 0;
+      state.point.x -= 1
     },
     moveRight: (state) => {
-      // let x = state.axis.x;
-      // state.axis.x = x < payload ? x + 1 : payload;
-      state.axis.x += 1
+      // let x = state.point.x;
+      // state.point.x = x < payload ? x + 1 : payload;
+      state.point.x += 1
     },
     hardDrop: (state, { payload }: PayloadAction<number>) => {
-      state.axis.y = payload;
+      state.point.y = payload;
     },
     fillUp: (state, { payload }: PayloadAction<Blocks>) => {
       state.filled = payload;
     },
     reDrop: (state) => {
-      state.axis.x = 4;
-      state.axis.y = -2;
+      state.point.x = 4;
+      state.point.y = -2;
     },
     wallkick: (state, { payload }: PayloadAction<number>) => {
-      state.axis.x -= payload
+      state.point.x -= payload
     },
   },
 });
