@@ -31,7 +31,7 @@ export const shapes: { [shape in Shape]: Tetromino } = {
   ],
 };
 
-const midPoint ={
+const midPoint: { [shape in Shape]: [number, number] } = {
   I: [-1, 0],
   L: [-1, -1],
   J: [-1, -1],
@@ -52,7 +52,7 @@ const rotate = (tetrads: Tetromino) => {
         acc[k].push(v);
       });
       return acc;
-    }, [] as number[][])
+    }, [] as Tetromino)
     .reverse();
 };
 
@@ -155,6 +155,63 @@ const getMidPoint = (
   } as Point
 }
 
+// 给矩阵上的点增加一个偏移量，在Point不变的情况下，改变方块的相对位置
+const getOffset = (
+  { x, y }: Point,
+  offset: [number, number],
+) => {
+  return {
+    x: x + offset[0],
+    y: y + offset[1],
+  } as Point
+}
+
+// 将移动中的方块和已填充的方块放在一起展示
+const Fill2 = (
+  pieces: Blocks,
+  filled: Blocks,
+) => {
+  for (const key of Object.keys(pieces)) {
+    const line = Number(key)
+    filled[line] = filled[line] ?
+      [...pieces[line], ...filled[line]] :
+      pieces[line]
+  }
+}
+
+const limit2 = (
+  blocks: Blocks,
+  width = 10,
+  height = 20,
+) => {
+  for (const key of Object.keys(blocks)) {
+    const line = Number(key)
+    if (line > height ||
+      blocks[line].some(v => v > width || v < 0)
+    ) {
+      return false
+    }
+  }
+  return true
+}
+
+const move2 = (
+  pieces: Blocks,
+  filled: Blocks,
+) => {
+  // 判断是否有交点，bottom可以通过循环y轴的值来获取
+  for (const key of Object.keys(pieces)) {
+    const line = Number(key)
+    if (filled[line] &&
+      pieces[line].some(v => filled[line].includes(v))
+    ) {
+      return line
+    }
+  }
+  // 这里0是y轴的边界值
+  return 0
+}
+
 const isFilled = (
   { x, y }: Point,
   blocks: Blocks
@@ -175,7 +232,7 @@ export const selectNext = createSelector(
   (shape) => {
     const next = shape[0]
     const filled: Blocks = {};
-    const startLocations: Point = getMidPoint(next, { x: 1, y: 1 })
+    const startLocations: Point = getOffset({ x: 1, y: 1 }, midPoint[next])
     const result = toFill(filled, shapes[next], { ...startLocations });
     return result;
   }
@@ -193,6 +250,41 @@ export const selectRotation = createSelector(
     return results[direction];
   }
 );
+
+// TODO: movement和rotation需要拆开
+export const selectMovement = createSelector(
+  selectRotation,
+  (state: RootState) => state.playfield.point,
+  (state: RootState) => state.playfield.filled,
+  (shape, point, filled) => (
+    action: string,
+  ) => {
+    let tetrads = shape
+    let location: [number, number] = [0, 0]
+    // 预测是否能执行下一步操作
+    switch (action) {
+
+      case 'up':
+        tetrads = rotate(shape)
+        break;
+      case 'right':
+        location = [1, 0]
+        break;
+      case 'down':
+        location = [0, 1]
+        break;
+      case 'left':
+        location = [-1, 0]
+        break;
+      default:
+
+        break;
+    }
+    const piece = convertToBlocks(tetrads, getOffset(point, location))
+
+    return move2(piece, filled) && limit2(piece)
+  }
+)
 
 export const selectControl = createSelector(
   selectRotation,
