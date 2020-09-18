@@ -3,7 +3,7 @@ import { RootState } from "../../app/store";
 
 const speeds = [800, 650, 500, 370, 250, 160];
 
-const delays = [50, 60, 70, 80, 90, 100];
+// const delays = [50, 60, 70, 80, 90, 100];
 
 // bonus points 额外奖励
 const bonusPoints = [100, 300, 500, 800];
@@ -28,9 +28,11 @@ export const boardSlice = createSlice({
   name: "board",
   initialState,
   reducers: {
-    // TODO: 额外奖励 grant 获取分数
-    grant: (state) => {
-      state.score = state.score < maxPoint ? state.score + 100 : state.score;
+    // 额外奖励 grant 获取分数
+    grant: (state, { payload }: PayloadAction<number>) => {
+      state.score = state.score < maxPoint ?
+        state.score + bonusPoints[payload] :
+        state.score;
     },
     // 难度等级提升,最高为5
     levelUp: (state, { payload }: PayloadAction<number>) => {
@@ -52,7 +54,7 @@ export const selectSpeed = createSelector(
   (level) => speeds[level]
 );
 
-export const selectDelay = createSelector(
-  (state: RootState) => state.board.level,
-  (level) => delays[level]
-);
+// export const selectDelay = createSelector(
+//   (state: RootState) => state.board.level,
+//   (level) => delays[level]
+// );

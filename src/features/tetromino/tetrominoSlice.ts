@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { AppThunk } from "../../app/store";
 
 type Shape = "I" | "O" | "T" | "L" | "J" | "Z" | "S";
 
@@ -10,9 +11,16 @@ enum Direction {
   Left,
 }
 
+// 游戏场地上移动的点
+type Point = {
+  x: number,
+  y: number
+}
+
 interface TetrominoState {
   currentShape: Shape;
   direct: Direction;
+  point: Point
   nextShape: Shape[];
 }
 
@@ -22,9 +30,12 @@ const randomizer = () => {
   return names[Math.floor(Math.random() * names.length)];
 };
 
+const origin = { x: 4, y: -1 }
+
 const initialState: TetrominoState = {
   currentShape: randomizer(),
   direct: 0,
+  point: origin,
   nextShape: [randomizer()],
 };
 
@@ -32,15 +43,41 @@ export const tetrominoSlice = createSlice({
   name: "tetromino",
   initialState,
   reducers: {
-    rotateRight: (state) => {
-      const direct = state.direct;
-      // 上下左右只有4个方位,增长到最大值后重置当前进度
-      state.direct = direct < 3 ? direct + 1 : 0;
-      // state.direction += 1; // 不重置进度
+    // 边界问题，能否直接硬编码，要灵活的话，就传入边界值
+    softDrop: (state) => {
+      // let y = state.point.y;
+      // state.point.y = y > 20 ? 20 : y + 1;
+      state.point.y += 1
+    },
+    hardDrop: (state, { payload }: PayloadAction<number>) => {
+      state.point.y += payload;
+    },
+    moveLeft: (state) => {
+      // let x = state.point.x;
+      // // 最小值是0
+      // state.point.x = x > 0 ? x - 1 : 0;
+      state.point.x -= 1
+    },
+    moveRight: (state) => {
+      // let x = state.point.x;
+      // state.point.x = x < payload ? x + 1 : payload;
+      state.point.x += 1
     },
     rotateLeft: (state) => {
       const direct = state.direct;
+      state.direct = direct < 3 ? direct + 1 : 0;
+      // state.direction += 1; // 不重置进度
+    },
+    rotateRight: (state) => {
+      const direct = state.direct;
+      // 上下左右只有4个方位,增长到最大值后重置当前进度
       state.direct = direct > 0 ? direct - 1 : 3;
+    },
+    wallkick: (state, { payload }: PayloadAction<number>) => {
+      state.point.x -= payload
+    },
+    reDrop: (state) => {
+      state.point = origin
     },
     getNextShape: {
       reducer: (state, { payload }: PayloadAction<Shape>) => {
@@ -57,6 +94,24 @@ export const tetrominoSlice = createSlice({
   },
 });
 
-export const { rotateRight,rotateLeft, getNextShape } = tetrominoSlice.actions;
+export const {
+  softDrop,
+  hardDrop,
+  moveLeft,
+  moveRight,
+  rotateLeft,
+  rotateRight,
+  wallkick,
+  reDrop,
+  getNextShape,
+} = tetrominoSlice.actions;
 
 export default tetrominoSlice.reducer;
+
+// 延时代码也可以通过这样的方式添加
+export const setNextShape = (): AppThunk => async dispatch => {
+  // 重置定位点
+  dispatch(reDrop());
+  // 触发下一个方块
+  dispatch(getNextShape());
+}

@@ -35,8 +35,6 @@ TODO:非核心功能
 * 数据缓存
 * 是否聚焦
 
-TODO: 方块与点合并，合并时去计算方块的相对位置
-
 先shape和direction组成currenShape，再根据axis决定下落locate在哪个位置
 shape是2维数组，因为形状是有限的，所以可以通过rotate函数计算出来shape旋转后的所有数据
 并存储在一个数据中，通过direction来直接读取旋转后的数据，且在到达最大值后重新计数

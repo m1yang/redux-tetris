@@ -1,54 +1,112 @@
-import React, { useEffect, useCallback, useState } from "react";
+import React, { useEffect, useCallback, useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import "./Playfield.css";
 import {
   fillUp,
   disappear,
-  reDrop,
-  wallkick,
   onPause,
   reset,
   selectCompletedLines,
-  setNextShape
+  toFill
 } from "./playfieldSlice";
 import { Matrix } from "../../components/matrix/Matrix";
-import { getNextShape } from "../tetromino/tetrominoSlice";
+import { softDrop, setNextShape } from "../tetromino/tetrominoSlice";
+import { selectDrop, selectHeight, selectOverflow } from "../tetromino/movementSelectors";
+import { selectCurrent } from "../tetromino/rotationSelectors";
 import {
-  selectCurrent,
-  selectDrop,
-  selectOffset,
-} from "../tetromino/tetrominoSelectors";
-import { selectDelay, grant, completedLines } from "../scoreboard/scoreboardSlice";
+  selectSpeed,
+  grant,
+  completedLines
+} from "../scoreboard/scoreboardSlice";
 import { Popup } from "./Popup";
 import { RootState } from "../../app/store";
 
-/* Playfield 模块渲染游戏场地
-长10x高20
-触发mino的生成和消除
-生成方块后，当方块触底时触发useDispatch下一个方块
-给记分板输出获取的积分
-判断游戏是否结束
+const useInterval = (callback: () => void, delay: number, pause: boolean) => {
+  const timerRef = useRef<() => void>()
+
+  timerRef.current = callback;
+
+  useEffect(() => {
+    if (pause === true) return;
+
+    const tick = () => timerRef.current?.()
+
+    const timerID = setInterval(tick, delay)
+    return () => clearInterval(timerID)
+  }, [delay, pause])
+}
+
+/* 
+Playfield 模块渲染游戏场地
+方块的展示与消除
 */
 export function Playfield() {
   const dispatch = useDispatch();
 
-  // 可以注入x来判断是否派发动作
-  const offset = useSelector(selectOffset);
-  useEffect(() => {
-    if (offset) {
-      dispatch(wallkick(offset));
-    }
-  }, [offset, dispatch])
+  /* 
+  一开始是默认的游戏开始画面
+  当新的方块无法再进入游戏场地时，游戏就结束了
+  开始是该组件的属性（props），结束可以通过计算得出，属于衍生属性
+  暂停作为state，来控制游戏进程
+  暂停为true时，判断游戏是否结束，来展示对应的界面
+  暂停为false时，游戏正常进行
+  */
+  const [start, setStart] = useState(true)
+  const pause = useSelector((state: RootState) => state.playfield.pause)
+  const resetAll = () => {
+    dispatch(reset())
+    dispatch(setNextShape())
+    dispatch(onPause(false))
+  }
+  // 判断游戏是否结束，给出界面按钮功能
+  // 未结束，按钮只有解除暂停一个功能
+  // 已结束，按钮设置为继续游戏
+  // 清空filled数据，在原点重新生成方块，并开始游戏
+  const fn = start ? () => dispatch(onPause(false))
+    : () => { resetAll(); setStart(true) }
 
+  /* 
+  方块降落过程中，先判断有无交点 
+  有-->再判断方块是否溢出  是-->游戏结束
+                        否-->方块填充
+  无-->再判断方块是否触底  是-->方块填充
+                        否-->继续降落 ==>判断有无交点
+  */
+  // 获取当前方块和已填充方块
   const current = useSelector(selectCurrent);
-  const drop = useSelector(selectDrop);
-  const delay = useSelector(selectDelay)
-  const curLine = useSelector((state: RootState) => state.playfield.point.y)
+  const filled = useSelector((state: RootState) => state.playfield.filled)
 
-  let overflow = curLine < 0
+  /* 对方块状态进行判断，主要判断是否触发下一个方块还是游戏结束 */
+  const drop = useSelector(selectDrop)
+  const overflow = useSelector(selectOverflow)
+  const height = useSelector(selectHeight);
+
+  const speed = useSelector(selectSpeed)
+  // const delay = useSelector(selectDelay)
+
+  // 控制自动下落
+  useInterval(() => {
+    if (drop && !height) {
+      dispatch(softDrop());
+    }
+  }, speed, pause)
+
+  // 方块填充
+  const next = useCallback(() => {
+    if ((!drop && !overflow) || height) {
+      dispatch(fillUp(current));
+      dispatch(setNextShape())
+    }
+  }, [drop, overflow, height,current, dispatch])
+
+  useEffect(() => {
+    const id = setTimeout(next, 500)
+    return () => clearTimeout(id)
+  })
 
   // 判断游戏是否结束
+  // 下一步阻塞，并且栈溢出
   useEffect(() => {
     if (!drop && overflow) {
       dispatch(onPause(true))
@@ -56,50 +114,27 @@ export function Playfield() {
     }
   }, [drop, overflow, dispatch])
 
-  // 不能继续下落，期望只有当blocks发生改变才执行相关代码
-  const next = useCallback(() => {
-    if (!drop && !overflow) {
-      dispatch(fillUp(current));
-      // // 此时触发下一个方块
-      // dispatch(getNextShape());
-      // // 重置定位点
-      // dispatch(reDrop());
-      dispatch(setNextShape())
-    }
-  }, [drop, current, overflow, dispatch])
-
-  useEffect(() => {
-    const id = setTimeout(next, delay);
-    return () => clearTimeout(id)
-  }, [next, delay])
-
+  /* 
+  消除发生在填充之后；
+  当一行被填满，消除该行；
+  消除是单次行为，所以多行的情况下也是同时触发；
+  触发消除后，计算当次消除的行数及对应得分。
+  */
   const lines = useSelector(selectCompletedLines)
   // 判断是否消除，可以异步但没必要
   useEffect(() => {
-    if (lines.length > 0) {
+    const numberOfLines = lines.length
+    if (numberOfLines > 0) {
       dispatch(disappear(lines));
-      dispatch(completedLines(lines.length));
-      dispatch(grant());
+      dispatch(completedLines(numberOfLines));
+      dispatch(grant(numberOfLines));
     }
   }, [lines, dispatch])
-
-  // 重置 考虑做成Thunk
-  const resetAll = () => {
-    dispatch(reset())
-    dispatch(getNextShape())
-    dispatch(reDrop())
-    dispatch(onPause(false))
-  }
-  // 只需要一种状态pause:boolen，游戏结束也是暂停
-  // setState来控制展示开始和结束界面
-  const [start, setStart] = useState(true)
-  const pause = useSelector((state: RootState) => state.playfield.pause)
-  const fn = start ? () => dispatch(onPause(false)) : resetAll
 
   return (
     // 将playfield数据映射成20x10的方格
     <div className="playfield">
-      <Matrix cols={10} rows={20} filled={current} />
+      <Matrix cols={10} rows={20} filled={toFill(current, filled)} />
       <Popup start={start} pause={pause} fn={fn} />
     </div>
   );

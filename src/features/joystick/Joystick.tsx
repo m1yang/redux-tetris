@@ -1,11 +1,20 @@
-import React, { useEffect, useCallback, useRef } from "react";
+import React, { useEffect, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import styles from "./Joystick.module.css";
-import { moveLeft, softDrop, moveRight, onPause, hardDrop, resetAll } from "../playfield/playfieldSlice";
-import { rotateRight, rotateLeft } from "../tetromino/tetrominoSlice";
-import { selectControl, selectBottom } from "../tetromino/tetrominoSelectors";
-import { selectSpeed } from "../scoreboard/scoreboardSlice";
+import {
+  softDrop,
+  hardDrop,
+  moveLeft,
+  moveRight,
+  rotateLeft,
+  rotateRight,
+  wallkick,
+  setNextShape
+} from "../tetromino/tetrominoSlice";
+import { selectMovement, selectDrop, selectHeight, selectBottom } from "../tetromino/movementSelectors";
+import { selectRotation, selectWallKick } from "../tetromino/rotationSelectors";
+import { onPause, reset } from "../playfield/playfieldSlice";
 import { RootState } from "../../app/store";
 
 // type Control = "rotateRight" | "softDrop" | "moveLeft" | "moveRight";
@@ -31,21 +40,6 @@ import { RootState } from "../../app/store";
 //   down: 40,
 //   left: 37,
 // };
-
-const useInterval = (callback: () => void, delay: number, pause: boolean) => {
-  const timerRef = useRef<() => void>()
-
-  timerRef.current = callback;
-
-  useEffect(() => {
-    if (pause === true) return;
-
-    const tick = () => timerRef.current?.()
-
-    const timerID = setInterval(tick, delay)
-    return () => clearInterval(timerID)
-  }, [delay, pause])
-}
 
 const useControl = (allow: boolean, action: any) => {
   const dispatch = useDispatch();
@@ -79,51 +73,53 @@ const useClick = (bem: string, handler: EventListenerOrEventListenerObject) => {
 export function Joystick() {
   const dispatch = useDispatch();
 
-  const speed = useSelector(selectSpeed)
-  // 操作的pause和界面的pause统一
-  const paused = useSelector((state: RootState) => state.playfield.pause)
-
-  // const [pause, setPause] = useState(true)
-
-  const control = useSelector(selectControl);
-
-  // 控制自动下落
-  useInterval(() => {
-    if (control('down')) {
-      dispatch(softDrop());
+  // 可以注入x来判断是否派发动作
+  const offset = useSelector(selectWallKick);
+  useEffect(() => {
+    if (offset) {
+      dispatch(wallkick(offset));
     }
-  }, speed, paused)
+  }, [offset, dispatch])
 
+  /* 暂停 */
+  const paused = useSelector((state: RootState) => state.playfield.pause)
   const offPause = useCallback(() => {
     if (paused) {
       dispatch(onPause(false))
     }
   }, [paused, dispatch])
 
-  // 旋转 顺时针
-  const onRotateRight = useControl(control('up'), rotateRight())
-  useClick(styles.up, () => { onRotateRight(); offPause() })
-
-  // 右移
-  const onMoveRight = useControl(control('right'), moveRight())
-  useClick(styles.right, () => { onMoveRight(); offPause() })
+  /* 降落 */
+  const drop = useSelector(selectDrop)
+  const height = useSelector(selectHeight)
 
   // 软降
-  const onSoftDrop = useControl(control('down'), softDrop())
+  const onSoftDrop = useControl(drop && !height, softDrop())
   useClick(styles.down, () => { onSoftDrop(); offPause() })
-
-  // 左移
-  const onMoveLeft = useControl(control('left'), moveLeft())
-  useClick(styles.left, () => { onMoveLeft(); offPause() })
-
-  // 旋转 逆时针
-  const onRotateLeft = useControl(control('up'), rotateLeft())
-  useClick(styles.A, () => { onRotateLeft(); offPause() })
 
   // 硬降
   const bottom = useSelector(selectBottom)
-  const onHardDrop = useControl(control('down'), hardDrop(bottom.y))
+  const onHardDrop = useControl(drop && !height, hardDrop(bottom))
   useClick(styles.B, () => { onHardDrop(); offPause() })
+
+  /* 移动 */
+  const move = useSelector(selectMovement);
+  // 左移
+  const onMoveLeft = useControl(move('left'), moveLeft())
+  useClick(styles.left, () => { onMoveLeft(); offPause() })
+  // 右移
+  const onMoveRight = useControl(move('right'), moveRight())
+  useClick(styles.right, () => { onMoveRight(); offPause() })
+
+  /* 旋转 */
+  const rotate = useSelector(selectRotation)
+  // 旋转 逆时针
+  const onRotateLeft = useControl(rotate('left'), rotateLeft())
+  useClick(styles.A, () => { onRotateLeft(); offPause() })
+
+  // 旋转 顺时针
+  const onRotateRight = useControl(rotate('right'), rotateRight())
+  useClick(styles.up, () => { onRotateRight(); offPause() })
 
   // 需要使用useEffect
   useEffect(() => {
@@ -186,7 +182,11 @@ export function Joystick() {
           onClick={() => { dispatch(onPause(!paused)) }} />
         <button className={styles.reset}
           type="button"
-          onClick={() => { dispatch(resetAll()) }} />
+          onClick={() => {
+            dispatch(onPause(true))
+            dispatch(reset());
+            dispatch(setNextShape());
+          }} />
       </div>
     </div>
   );

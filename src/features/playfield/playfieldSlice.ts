@@ -1,16 +1,13 @@
 import { createSlice, PayloadAction, createSelector } from "@reduxjs/toolkit";
-import { Blocks, Point } from "../../common/types";
-import { RootState, AppThunk } from "../../app/store";
-import { getNextShape } from "../tetromino/tetrominoSlice";
+import { Blocks } from "../../common/types";
+import { RootState,AppThunk } from "../../app/store";
 
 interface PlayfieldState {
-  point: Point;
   filled: Blocks;
   pause: boolean
 }
 
 const initialState: PlayfieldState = {
-  point: { x: 4, y: -2 },
   filled: {},
   pause: true
 };
@@ -45,42 +42,14 @@ export const playfieldSlice = createSlice({
         return { payload: line };
       },
     },
-    // TODO: 是否可以不接收参数，直接state.pause = !state.pause
     onPause: (state, { payload }: PayloadAction<boolean>) => {
       state.pause = payload
     },
     reset: (state) => {
       state.filled = {};
     },
-    // 边界问题，能否直接硬编码，要灵活的话，就传入边界值
-    softDrop: (state) => {
-      // let y = state.point.y;
-      // state.point.y = y > 20 ? 20 : y + 1;
-      state.point.y += 1
-    },
-    moveLeft: (state) => {
-      // let x = state.point.x;
-      // // 最小值是0
-      // state.point.x = x > 0 ? x - 1 : 0;
-      state.point.x -= 1
-    },
-    moveRight: (state) => {
-      // let x = state.point.x;
-      // state.point.x = x < payload ? x + 1 : payload;
-      state.point.x += 1
-    },
-    hardDrop: (state, { payload }: PayloadAction<number>) => {
-      state.point.y = payload;
-    },
     fillUp: (state, { payload }: PayloadAction<Blocks>) => {
-      state.filled = payload;
-    },
-    reDrop: (state) => {
-      state.point.x = 4;
-      state.point.y = -2;
-    },
-    wallkick: (state, { payload }: PayloadAction<number>) => {
-      state.point.x -= payload
+      state.filled = toFill(payload, state.filled)
     },
   },
 });
@@ -89,30 +58,24 @@ export const {
   disappear,
   onPause,
   reset,
-  softDrop,
-  moveLeft,
-  moveRight,
   fillUp,
-  hardDrop,
-  reDrop,
-  wallkick,
 } = playfieldSlice.actions;
 
 export default playfieldSlice.reducer;
 
-// 延时代码也可以通过这样的方式添加
-export const setNextShape = (): AppThunk => async dispatch => {
-  // 重置定位点
-  dispatch(reDrop());
-  // 触发下一个方块
-  dispatch(getNextShape());
-}
-
-export const resetAll = (): AppThunk => async dispatch => {
-  dispatch(reset())
-  dispatch(getNextShape())
-  dispatch(reDrop())
-  dispatch(onPause(true))
+// 将移动中的方块和已填充的方块放在一起展示
+export const toFill = (
+  pieces: Blocks,
+  filled: Blocks,
+) => {
+  const result = {...filled}
+  for (const key of Object.keys(pieces)) {
+    const line = Number(key)
+    result[line] = filled[line] ?
+      [...pieces[line], ...filled[line]] :
+      pieces[line]
+  }
+  return result
 }
 
 // playfield组件判断当前数据是否存在长度满格的，存在就调用该计算
@@ -128,3 +91,8 @@ export const selectCompletedLines = createSelector(
     return rows
   }
 )
+
+export const resetAll = (): AppThunk => async dispatch => {
+  dispatch(reset())
+  dispatch(onPause(true))
+}
