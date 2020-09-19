@@ -1,21 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { AppThunk } from "../../app/store";
-
-type Shape = "I" | "O" | "T" | "L" | "J" | "Z" | "S";
-
-// 顺时针方向
-enum Direction {
-  Up = 0,
-  Right,
-  Down,
-  Left,
-}
-
-// 游戏场地上移动的点
-type Point = {
-  x: number,
-  y: number
-}
+// import { AppThunk } from "../../app/store";
+import { Shape, Direction, Point } from "../../common/types";
 
 interface TetrominoState {
   currentShape: Shape;
@@ -25,18 +10,46 @@ interface TetrominoState {
 }
 
 // 随机生成下一个方块类型
-const randomizer = () => {
-  let names: Shape[] = ["I", "O", "T", "L", "J", "Z", "S"];
-  return names[Math.floor(Math.random() * names.length)];
-};
+// const randomizer = () => {
+//   let names: Shape[] = ["I", "O", "T", "L", "J", "Z", "S"];
+//   return names[Math.floor(Math.random() * names.length)];
+// };
+
+// const randomGenerator= () => {
+//   let bag = 'OISZLJT'.split('') as Shape[];
+//   return function* () {
+//     let tmp:number[] = []
+//     while (true) {
+//       if (tmp.length === 0) {
+//         tmp = Array.from({length: bag.length}, (_, i) => i)
+//       };
+//       const result = tmp.splice(Math.floor(Math.random() * tmp.length), 1)[0]
+//       yield bag[result];
+//     }
+//   }()
+// }
+
+const randomGenerator = () => {
+  let bag = 'OISZLJT'.split('') as Shape[];
+  let tmp: number[] = []
+  return function () {
+    if (tmp.length === 0) {
+      tmp = Array.from({ length: bag.length }, (_, i) => i)
+    };
+    const result = tmp.splice(Math.floor(Math.random() * tmp.length), 1)[0]
+    return bag[result];
+  }
+}
+
+let bag = randomGenerator()
 
 const origin = { x: 4, y: -1 }
 
 const initialState: TetrominoState = {
-  currentShape: randomizer(),
+  currentShape: bag(),
   direct: 0,
   point: origin,
-  nextShape: [randomizer()],
+  nextShape: [bag()],
 };
 
 export const tetrominoSlice = createSlice({
@@ -76,21 +89,26 @@ export const tetrominoSlice = createSlice({
     wallkick: (state, { payload }: PayloadAction<number>) => {
       state.point.x -= payload
     },
-    reDrop: (state) => {
+    resetShape: state => {
+      bag = randomGenerator()
+      state.direct = 0
       state.point = origin
+      state.currentShape = bag()
+      state.nextShape= [bag()]
     },
-    getNextShape: {
-      reducer: (state, { payload }: PayloadAction<Shape>) => {
+    getNextShape:  (state) => {
         // 理论上来说，除了初始值外，一定是从下个形状获取到当前形状，而不是随机数
         // 但是TS要求类型一致，所以不得以加上了随机数
-        state.currentShape = state.nextShape.shift() || randomizer();
-        state.nextShape.push(payload);
+        state.point = origin
+        // state.currentShape = state.nextShape.shift() || randomizer();
+        state.currentShape = state.nextShape.shift()!
+        state.nextShape.push(bag());
         state.direct = 0;
       },
-      prepare: () => {
-        return { payload: randomizer() };
-      },
-    },
+      // prepare: () => {
+      //   return { payload: randomizer() };
+      // },
+    
   },
 });
 
@@ -102,16 +120,8 @@ export const {
   rotateLeft,
   rotateRight,
   wallkick,
-  reDrop,
+  resetShape,
   getNextShape,
 } = tetrominoSlice.actions;
 
 export default tetrominoSlice.reducer;
-
-// 延时代码也可以通过这样的方式添加
-export const setNextShape = (): AppThunk => async dispatch => {
-  // 重置定位点
-  dispatch(reDrop());
-  // 触发下一个方块
-  dispatch(getNextShape());
-}

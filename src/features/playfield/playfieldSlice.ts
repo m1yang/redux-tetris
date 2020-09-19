@@ -1,6 +1,8 @@
 import { createSlice, PayloadAction, createSelector } from "@reduxjs/toolkit";
 import { Blocks } from "../../common/types";
-import { RootState,AppThunk } from "../../app/store";
+import { RootState, AppThunk } from "../../app/store";
+import { resetShape } from "../tetromino/tetrominoSlice";
+import { clearRecords } from "../scoreboard/scoreboardSlice";
 
 interface PlayfieldState {
   filled: Blocks;
@@ -45,9 +47,7 @@ export const playfieldSlice = createSlice({
     onPause: (state, { payload }: PayloadAction<boolean>) => {
       state.pause = payload
     },
-    reset: (state) => {
-      state.filled = {};
-    },
+    clearBlocks: state => {state.filled = {}},
     fillUp: (state, { payload }: PayloadAction<Blocks>) => {
       state.filled = toFill(payload, state.filled)
     },
@@ -57,7 +57,7 @@ export const playfieldSlice = createSlice({
 export const {
   disappear,
   onPause,
-  reset,
+  clearBlocks,
   fillUp,
 } = playfieldSlice.actions;
 
@@ -68,7 +68,7 @@ export const toFill = (
   pieces: Blocks,
   filled: Blocks,
 ) => {
-  const result = {...filled}
+  const result = { ...filled }
   for (const key of Object.keys(pieces)) {
     const line = Number(key)
     result[line] = filled[line] ?
@@ -93,6 +93,7 @@ export const selectCompletedLines = createSelector(
 )
 
 export const resetAll = (): AppThunk => async dispatch => {
-  dispatch(reset())
-  dispatch(onPause(true))
+  dispatch(clearBlocks())
+  dispatch(resetShape())
+  dispatch(clearRecords())
 }

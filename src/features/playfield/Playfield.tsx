@@ -6,12 +6,12 @@ import {
   fillUp,
   disappear,
   onPause,
-  reset,
   selectCompletedLines,
-  toFill
+  toFill,
+  resetAll
 } from "./playfieldSlice";
 import { Matrix } from "../../components/matrix/Matrix";
-import { softDrop, setNextShape } from "../tetromino/tetrominoSlice";
+import { softDrop, getNextShape } from "../tetromino/tetrominoSlice";
 import { selectDrop, selectHeight, selectOverflow } from "../tetromino/movementSelectors";
 import { selectCurrent } from "../tetromino/rotationSelectors";
 import {
@@ -54,17 +54,17 @@ export function Playfield() {
   */
   const [start, setStart] = useState(true)
   const pause = useSelector((state: RootState) => state.playfield.pause)
-  const resetAll = () => {
-    dispatch(reset())
-    dispatch(setNextShape())
-    dispatch(onPause(false))
-  }
+
   // 判断游戏是否结束，给出界面按钮功能
   // 未结束，按钮只有解除暂停一个功能
   // 已结束，按钮设置为继续游戏
   // 清空filled数据，在原点重新生成方块，并开始游戏
   const fn = start ? () => dispatch(onPause(false))
-    : () => { resetAll(); setStart(true) }
+    : () => {
+      dispatch(resetAll());
+      setStart(true);
+      dispatch(onPause(false))
+    }
 
   /* 
   方块降落过程中，先判断有无交点 
@@ -96,9 +96,9 @@ export function Playfield() {
   const next = useCallback(() => {
     if ((!drop && !overflow) || height) {
       dispatch(fillUp(current));
-      dispatch(setNextShape())
+      dispatch(getNextShape())
     }
-  }, [drop, overflow, height,current, dispatch])
+  }, [drop, overflow, height, current, dispatch])
 
   useEffect(() => {
     const id = setTimeout(next, 500)

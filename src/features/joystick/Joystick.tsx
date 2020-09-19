@@ -10,11 +10,10 @@ import {
   rotateLeft,
   rotateRight,
   wallkick,
-  setNextShape
 } from "../tetromino/tetrominoSlice";
 import { selectMovement, selectDrop, selectHeight, selectBottom } from "../tetromino/movementSelectors";
 import { selectRotation, selectWallKick } from "../tetromino/rotationSelectors";
-import { onPause, reset } from "../playfield/playfieldSlice";
+import { onPause, resetAll } from "../playfield/playfieldSlice";
 import { RootState } from "../../app/store";
 
 // type Control = "rotateRight" | "softDrop" | "moveLeft" | "moveRight";
@@ -183,9 +182,8 @@ export function Joystick() {
         <button className={styles.reset}
           type="button"
           onClick={() => {
+            dispatch(resetAll());
             dispatch(onPause(true))
-            dispatch(reset());
-            dispatch(setNextShape());
           }} />
       </div>
     </div>

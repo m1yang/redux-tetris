@@ -1,16 +1,18 @@
 import { createSlice, PayloadAction, createSelector } from "@reduxjs/toolkit";
 import { RootState } from "../../app/store";
 
-const speeds = [800, 650, 500, 370, 250, 160];
+// Time = (0.8-((Level-1)*0.007))^(Level-1)
 
+// const speeds = [800, 650, 500, 370, 250, 160];
 // const delays = [50, 60, 70, 80, 90, 100];
 
-// bonus points 额外奖励
-const bonusPoints = [100, 300, 500, 800];
-
-const maxPoint = 999999;
-
-// const eachLines = 10; // 每消除eachLines行, 增加速度
+const config = {
+  topScore: 999999,
+  pass: 10,
+  // bonus points 额外奖励
+  bonus: [100, 300, 500, 800],
+  hardest: 5
+}
 
 interface BoardState {
   score: number;
@@ -20,7 +22,7 @@ interface BoardState {
 
 const initialState: BoardState = {
   score: 0,
-  level: 0,
+  level: 1,
   lines: 0,
 };
 
@@ -30,9 +32,8 @@ export const boardSlice = createSlice({
   reducers: {
     // 额外奖励 grant 获取分数
     grant: (state, { payload }: PayloadAction<number>) => {
-      state.score = state.score < maxPoint ?
-        state.score + bonusPoints[payload] :
-        state.score;
+      const score = state.score + config.bonus[payload]
+      state.score = Math.min(score, config.topScore)
     },
     // 难度等级提升,最高为5
     levelUp: (state, { payload }: PayloadAction<number>) => {
@@ -42,17 +43,33 @@ export const boardSlice = createSlice({
     completedLines: (state, { payload }: PayloadAction<number>) => {
       state.lines += payload;
     },
+    clearRecords: state => initialState,
   },
 });
 
-export const { grant, levelUp, completedLines } = boardSlice.actions;
+export const {
+  grant,
+  levelUp,
+  completedLines,
+  clearRecords } = boardSlice.actions;
 
 export default boardSlice.reducer;
 
 export const selectSpeed = createSelector(
   (state: RootState) => state.board.level,
-  (level) => speeds[level]
+  (level) => (0.8 - ((level - 1) * 0.007)) ** (level - 1) * 1000
 );
+
+// const gain = level + Math.floor(lines / 10)
+// const levelMax = gain < 5 ? gain : 5
+export const selectLevel = createSelector(
+  (state: RootState) => state.board.level,
+  (state: RootState) => state.board.lines,
+  (level, lines) => {
+    level += Math.floor(lines / config.pass)
+    return Math.min(level, config.hardest)
+  }
+)
 
 // export const selectDelay = createSelector(
 //   (state: RootState) => state.board.level,
