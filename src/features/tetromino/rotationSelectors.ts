@@ -11,7 +11,7 @@ tetrads + point --> pieces
 */
 
 // 俄罗斯方块的基础模板
-export const shapes: { [shape in Shape]: Tetromino } = {
+const shapes: { [shape in Shape]: Tetromino } = {
     I: [[1, 1, 1, 1]],
     L: [
         [0, 0, 1],
@@ -83,7 +83,7 @@ const rotateCache = (item: Tetromino) => {
 };
 
 // 给矩阵上的点增加一个偏移量，在Point不变的情况下，改变方块的相对位置
-export const getOffset = (
+const getOffset = (
     { x, y }: Point,
     offset: Offset,
 ) => {

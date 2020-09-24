@@ -12,7 +12,11 @@ import {
 } from "./playfieldSlice";
 import { Matrix } from "../../components/matrix/Matrix";
 import { softDrop, getNextShape } from "../tetromino/tetrominoSlice";
-import { selectDrop, selectHeight, selectOverflow } from "../tetromino/movementSelectors";
+import {
+  selectDrop,
+  selectHeight,
+  selectOverflow
+} from "../tetromino/movementSelectors";
 import { selectCurrent } from "../tetromino/rotationSelectors";
 import {
   selectSpeed,
@@ -67,10 +71,10 @@ export function Playfield() {
     }
 
   /* 
-  方块降落过程中，先判断有无交点 
-  有-->再判断方块是否溢出  是-->游戏结束
+  方块降落过程中，先判断是否阻塞 
+  是-->再判断方块是否溢出  是-->游戏结束
                         否-->方块填充
-  无-->再判断方块是否触底  是-->方块填充
+  否-->再判断方块是否触底  是-->方块填充
                         否-->继续降落 ==>判断有无交点
   */
   // 获取当前方块和已填充方块

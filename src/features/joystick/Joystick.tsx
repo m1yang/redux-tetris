@@ -80,45 +80,40 @@ export function Joystick() {
     }
   }, [offset, dispatch])
 
-  /* 暂停 */
-  const paused = useSelector((state: RootState) => state.playfield.pause)
-  const offPause = useCallback(() => {
-    if (paused) {
-      dispatch(onPause(false))
-    }
-  }, [paused, dispatch])
+    /* 暂停 */
+    const paused = useSelector((state: RootState) => state.playfield.pause)
 
   /* 降落 */
   const drop = useSelector(selectDrop)
   const height = useSelector(selectHeight)
 
   // 软降
-  const onSoftDrop = useControl(drop && !height, softDrop())
-  useClick(styles.down, () => { onSoftDrop(); offPause() })
+  const onSoftDrop = useControl(drop && !height && !paused, softDrop())
+  useClick(styles.down, () => { onSoftDrop() })
 
   // 硬降
   const bottom = useSelector(selectBottom)
-  const onHardDrop = useControl(drop && !height, hardDrop(bottom))
-  useClick(styles.B, () => { onHardDrop(); offPause() })
+  const onHardDrop = useControl(drop && !height && !paused, hardDrop(bottom))
+  useClick(styles.B, () => { onHardDrop() })
 
   /* 移动 */
   const move = useSelector(selectMovement);
   // 左移
-  const onMoveLeft = useControl(move('left'), moveLeft())
-  useClick(styles.left, () => { onMoveLeft(); offPause() })
+  const onMoveLeft = useControl(move('left') && !paused, moveLeft())
+  useClick(styles.left, () => { onMoveLeft() })
   // 右移
-  const onMoveRight = useControl(move('right'), moveRight())
-  useClick(styles.right, () => { onMoveRight(); offPause() })
+  const onMoveRight = useControl(move('right') && !paused, moveRight())
+  useClick(styles.right, () => { onMoveRight() })
 
   /* 旋转 */
   const rotate = useSelector(selectRotation)
   // 旋转 逆时针
-  const onRotateLeft = useControl(rotate('left'), rotateLeft())
-  useClick(styles.A, () => { onRotateLeft(); offPause() })
+  const onRotateLeft = useControl(rotate('left') && !paused, rotateLeft())
+  useClick(styles.A, () => { onRotateLeft() })
 
   // 旋转 顺时针
-  const onRotateRight = useControl(rotate('right'), rotateRight())
-  useClick(styles.up, () => { onRotateRight(); offPause() })
+  const onRotateRight = useControl(rotate('right') && !paused, rotateRight())
+  useClick(styles.up, () => { onRotateRight() })
 
   // 需要使用useEffect
   useEffect(() => {
@@ -127,22 +122,18 @@ export function Joystick() {
         case "ArrowUp":
           //上
           onRotateRight();
-          offPause()
           break;
         case "ArrowDown":
           //下
           onSoftDrop();
-          offPause()
           break;
         case "ArrowLeft":
           //左
           onMoveLeft();
-          offPause()
           break;
 
         case "ArrowRight":
           onMoveRight();
-          offPause()
           break;
         default:
           break;
@@ -152,10 +143,10 @@ export function Joystick() {
     return () => {
       window.removeEventListener('keydown', handlerKeydown);
     };
-  }, [onRotateRight, onSoftDrop, onMoveLeft, onMoveRight, offPause, dispatch])
-
-
+  }, [onRotateRight, onSoftDrop, onMoveLeft, onMoveRight, dispatch])
+  
   return (
+    // TODO: 摇杆样式
     // 绘制摇杆 用icon会更好看些
     <div className={styles.joystick}>
       <div className={styles.direction}>
