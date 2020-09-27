@@ -42,7 +42,7 @@ export const tetrominoSlice = createSlice({
       state.point.y += 1
     },
     hardDrop: (state, { payload }: PayloadAction<number>) => {
-      state.point.y += payload;
+      state.point.y = payload;
     },
     moveLeft: (state) => {
       // let x = state.point.x;
@@ -66,6 +66,9 @@ export const tetrominoSlice = createSlice({
     },
     wallkick: (state, { payload }: PayloadAction<number>) => {
       state.point.x -= payload
+    },
+    rebound: (state, { payload }: PayloadAction<number>) => {
+      state.point.y -= payload
     },
     resetShape: state => {
       bag = randomGenerator()
@@ -92,6 +95,7 @@ export const {
   rotateLeft,
   rotateRight,
   wallkick,
+  rebound,
   resetShape,
   getNextShape,
 } = tetrominoSlice.actions;

@@ -10,26 +10,40 @@ import {
   rotateLeft,
   rotateRight,
   wallkick,
-  rebound,
 } from "../tetromino/tetrominoSlice";
 import {
-  selectSoftDrop,
-  selectHardDrop,
   selectMovement,
-  selectRotation,
-  selectOverHeight,
-  leftmost,
-  rightmost,
-  selectWallKick,
-  selectRebound
-} from "../tetromino/controlSystem";
+  selectDrop,
+  selectHeight,
+  selectBottom
+} from "../tetromino/movementSelectors";
+import { selectRotation, selectWallKick } from "../tetromino/rotationSelectors";
 import { onPause, resetAll } from "../playfield/playfieldSlice";
 import { RootState } from "../../app/store";
 
-enum Aim {
-  left = -1,
-  right = 1
-}
+// type Control = "rotateRight" | "softDrop" | "moveLeft" | "moveRight";
+// const keyBoard = {
+//   'esc': 'pause',
+//   'z': 'rotateLeft',
+//   'c': 'hold',
+//   'space': 'hardDrop',
+//   'up': 'rotateRight',
+//   'right': 'moveRight',
+//   'down': 'softDrop',
+//   'left': 'moveLeft'
+// }
+
+// 键盘事件 keyCode 别名
+// const KeyCodeMap = {
+//   esc: 27,
+//   z: 90,
+//   c: 67,
+//   space: 32,
+//   up: 38,
+//   right: 39,
+//   down: 40,
+//   left: 37,
+// };
 
 const useControl = (allow: boolean, action: any) => {
   const dispatch = useDispatch();
@@ -41,97 +55,73 @@ const useControl = (allow: boolean, action: any) => {
   }, [allow, action, dispatch])
 }
 
-const useClick = (
-  bem: string,
-  handler: EventListenerOrEventListenerObject,
-  pause: boolean) => {
+const useClick = (bem: string, handler: EventListenerOrEventListenerObject) => {
   const eles = Array.from(document.getElementsByClassName(bem))
 
   useEffect(() => {
-    if (pause === true) return;
-
     eles.forEach((ele) => ele.addEventListener('click', handler))
 
     return () => {
       eles.forEach((ele) => ele.removeEventListener('click', handler))
     };
-  }, [eles, handler, pause]);
+  }, [eles, handler]);
 }
 
-/* 
-Joystick 
-操作按钮，结合control system完成游戏的各种操作
+/* Matrix 模块渲染游戏场地
+长10x高20
+触发mino的生成和消除
+生成方块后，当方块触底时触发useDispatch下一个方块
+给记分板输出获取的积分
+判断游戏是否结束
 */
 export function Joystick() {
   const dispatch = useDispatch();
 
-  let { left, right } = Aim
+  // 可以注入x来判断是否派发动作
+  const offset = useSelector(selectWallKick);
+  useEffect(() => {
+    if (offset) {
+      dispatch(wallkick(offset));
+    }
+  }, [offset, dispatch])
 
   /* 暂停 */
   const paused = useSelector((state: RootState) => state.playfield.pause)
 
   /* 降落 */
-  const drop = useSelector(selectSoftDrop)
-  const height = useSelector(selectOverHeight)
+  const drop = useSelector(selectDrop)
+  const height = useSelector(selectHeight)
 
   // 软降
-  const onSoftDrop = useControl(!drop && !height, softDrop())
-  useClick(styles.down, () => { onSoftDrop() }, paused)
+  const onSoftDrop = useControl(drop && !height && !paused, softDrop())
+  useClick(styles.down, () => { onSoftDrop() })
+
   // 硬降
-  const bottom = useSelector(selectHardDrop)
-  const onHardDrop = useControl(!drop, hardDrop(bottom))
-  useClick(styles.B, () => { onHardDrop() }, paused)
+  const bottom = useSelector(selectBottom)
+  const onHardDrop = useControl(drop && !height && !paused, hardDrop(bottom))
+  useClick(styles.B, () => { onHardDrop() })
 
   /* 移动 */
-  // 按条件添加事件，按条件触发动作
   const move = useSelector(selectMovement);
-  const overLeft = useSelector(leftmost)
-  const overRight = useSelector(rightmost)
   // 左移
-  const onMoveLeft = useControl(!move(left) && overLeft > 0, moveLeft())
-  useClick(styles.left, () => { onMoveLeft() }, paused)
+  const onMoveLeft = useControl(move('left') && !paused, moveLeft())
+  useClick(styles.left, () => { onMoveLeft() })
   // 右移
-  const onMoveRight = useControl(!move(right) && overRight > 0, moveRight())
-  useClick(styles.right, () => { onMoveRight() }, paused)
+  const onMoveRight = useControl(move('right') && !paused, moveRight())
+  useClick(styles.right, () => { onMoveRight() })
 
   /* 旋转 */
   const rotate = useSelector(selectRotation)
-
-  const onRotateLeft = useCallback(() => {
-    if (!rotate(left)) {
-      dispatch(rotateLeft())
-    }
-  }, [rotate, left, dispatch])
-
   // 旋转 逆时针
-  // const onRotateLeft = useControl(rotate(left), rotateLeft())
-  useClick(styles.A, () => { onRotateLeft() }, paused)
+  const onRotateLeft = useControl(rotate('left') && !paused, rotateLeft())
+  useClick(styles.A, () => { onRotateLeft() })
 
-  const onRotateRight = useCallback(() => {
-    if (!rotate(right)) {
-      dispatch(rotateRight())
-
-
-    }
-  }, [rotate, right, dispatch])
   // 旋转 顺时针
-  // const onRotateRight = useControl(rotate(right), rotateRight())
-  useClick(styles.up, () => { onRotateRight() }, paused)
-
-  const kick = useSelector(selectWallKick);
-  const bound = useSelector(selectRebound)
-  useEffect(() => {
-    if (!!kick) {
-      dispatch(wallkick(kick))
-    }
-    if (!!bound) {
-      dispatch(rebound(bound))
-    }
-  })
+  const onRotateRight = useControl(rotate('right') && !paused, rotateRight())
+  useClick(styles.up, () => { onRotateRight() })
 
   // 需要使用useEffect
   useEffect(() => {
-    if (paused === true) return;
     const handlerKeydown: (this: Window, ev: KeyboardEvent) => any = (ev) => {
       switch (ev.key) {
         case "ArrowUp":
@@ -158,7 +148,7 @@ export function Joystick() {
     return () => {
       window.removeEventListener('keydown', handlerKeydown);
     };
-  }, [onRotateRight, onSoftDrop, onMoveLeft, onMoveRight, dispatch, paused])
+  }, [onRotateRight, onSoftDrop, onMoveLeft, onMoveRight, dispatch])
 
   return (
     // TODO: 摇杆样式

@@ -1,7 +1,7 @@
 import React from "react";
 import { useSelector } from "react-redux";
 import { Matrix } from "../../components/matrix/Matrix";
-import { selectNext } from "../tetromino/rotationSelectors";
+import { selectNext } from "../tetromino/tetrominoSelectors";
 
 /* Next 下一个方块
 功能都放在了tetromino内，这里只接收方块类型做展示

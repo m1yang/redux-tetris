@@ -13,10 +13,11 @@ import {
 import { Matrix } from "../../components/matrix/Matrix";
 import { softDrop, getNextShape } from "../tetromino/tetrominoSlice";
 import {
-  selectSoftDrop,
-  selectOverHeight,
-} from "../tetromino/controlSystem";
-import { selectCurrent } from "../tetromino/tetrominoSelectors";
+  selectDrop,
+  selectHeight,
+  selectOverflow
+} from "../tetromino/movementSelectors";
+import { selectCurrent } from "../tetromino/rotationSelectors";
 import {
   selectSpeed,
   grant,
@@ -81,25 +82,25 @@ export function Playfield() {
   const filled = useSelector((state: RootState) => state.playfield.filled)
 
   /* 对方块状态进行判断，主要判断是否触发下一个方块还是游戏结束 */
-  const drop = useSelector(selectSoftDrop)
-  const overflow = useSelector((state: RootState) => state.tetromino.point.y)
-  const height = useSelector(selectOverHeight);
+  const drop = useSelector(selectDrop)
+  const overflow = useSelector(selectOverflow)
+  const height = useSelector(selectHeight);
 
   const speed = useSelector(selectSpeed)
+  // const delay = useSelector(selectDelay)
 
   // 控制自动下落
   useInterval(() => {
-    if (!drop && !height) {
+    if (drop && !height) {
       dispatch(softDrop());
     }
   }, speed, pause)
 
   // 方块填充
   const next = useCallback(() => {
-    if ((drop && overflow>0) || height) {
+    if ((!drop && !overflow) || height) {
       dispatch(fillUp(current));
       dispatch(getNextShape())
-      // TODO 在方块填充的逻辑里判断游戏是否结束
     }
   }, [drop, overflow, height, current, dispatch])
 
@@ -111,7 +112,7 @@ export function Playfield() {
   // 判断游戏是否结束
   // 下一步阻塞，并且栈溢出
   useEffect(() => {
-    if (drop && overflow<0) {
+    if (!drop && overflow) {
       dispatch(onPause(true))
       setStart(false)
     }
