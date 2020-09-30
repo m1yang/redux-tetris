@@ -13,8 +13,7 @@ import {
 只是单纯把selector当作计算衍生数据的手段
 正确的实现应该是selector使用少有变化的参数
 */
-
-export const isBlocked = (
+const isVacated = (
     pieces: Blocks,
     filled: Blocks,
 ) => {
@@ -23,84 +22,40 @@ export const isBlocked = (
         if (filled[line] &&
             pieces[line].some(v => filled[line].includes(v))
         ) {
-            return true
+            return false
         }
     }
     // pieces的边界较为固定，遍历完后可以确定没有交点
-    return false
+    return true
 }
 
 /* 不知道是否应该用这种定参的方法来统一方块操作预测 */
-export const selectForecast = (
-    next: string,
-    step: number,
-) => createSelector(
+export const selectForecast =  createSelector(
     selectTetrominoCreator,
     (state: RootState) => state.tetromino.direct,
     (state: RootState) => state.tetromino.point,
     (state: RootState) => state.playfield.filled,
-    (tetrads, direct, point, filled) => {
+    (tetrads, direct, point, filled) => (
+        next: string,
+        step: number,
+    ) =>{
+        let nextPoint = { ...point }
+        let nextDirect = direct
         switch (next) {
             case 'move':
-                point.x += step
+                nextPoint.x += step
                 break;
             case 'drop':
-                point.y += step
+                nextPoint.y += step
                 break;
             case 'rotate':
-                direct += step
+                nextDirect += step
                 break;
             default:
                 throw new Error(`only have move,drop,rotate to control`);
         }
-        const tetrad = tetrads(direct, point)
-        return isBlocked(tetrad, filled)
-    }
-)
-
-/* 方块降落 没有阻塞没有限制的情况下返回true */
-const selectFallen = createSelector(
-    selectTetrominoCreator,
-    (state: RootState) => state.tetromino.direct,
-    (state: RootState) => state.tetromino.point,
-    (state: RootState) => state.playfield.filled,
-    (tetrads, direct, point, filled) => (
-        next: number,
-    ) => {
-        const tetrad = tetrads(direct, { x: point.x, y: point.y + next })
-        return isBlocked(tetrad, filled)
-    }
-)
-
-export const selectSoftDrop = createSelector(
-    selectFallen,
-    (fall) => fall(1)
-)
-
-/* 方块平移 没有阻塞没有限制的情况下返回true */
-export const selectMovement = createSelector(
-    selectTetrominoCreator,
-    (state: RootState) => state.tetromino.direct,
-    (state: RootState) => state.tetromino.point,
-    (state: RootState) => state.playfield.filled,
-    (tetrads, direct, point, filled) => (
-        next: number,
-    ) => {
-        const tetrad = tetrads(direct, { x: point.x + next, y: point.y })
-        return isBlocked(tetrad, filled)
-    }
-)
-
-/* 旋转系统 下次旋转与filled有交点就不能旋转 */
-export const selectRotation = createSelector(
-    selectTetrominoCreator,
-    (state: RootState) => state.tetromino.direct,
-    (state: RootState) => state.tetromino.point,
-    (state: RootState) => state.playfield.filled,
-    (tetrads, direct, point, filled) => (next: number) => {
-        const tetrad = tetrads(direct + next, { x: point.x, y: point.y })
-
-        return isBlocked(tetrad, filled)
+        const tetrad = tetrads(nextDirect, nextPoint)
+        return isVacated(tetrad, filled)
     }
 )
 
@@ -192,7 +147,7 @@ const selectLanding = createSelector(
         for (const key of Object.keys(filled)) {
             const line = Number(key)
             const tetrad = dropDown(line)
-            if (isBlocked(tetrad, filled)) {
+            if (!isVacated(tetrad, filled)) {
                 // 降落在被阻塞的上一行
                 return line - 1
             }
@@ -212,7 +167,7 @@ const selectSink = createSelector(
     }
 )
 
-export const selectHardDrop = createSelector(
+export const selectReachedBottom = createSelector(
     selectLanding,
     selectSink,
     (land, down) => {

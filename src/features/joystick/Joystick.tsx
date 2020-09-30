@@ -13,10 +13,8 @@ import {
   rebound,
 } from "../tetromino/tetrominoSlice";
 import {
-  selectSoftDrop,
-  selectHardDrop,
-  selectMovement,
-  selectRotation,
+  selectForecast,
+  selectReachedBottom,
   selectReachingBottom,
   selectReachingLeft,
   selectReachingRight,
@@ -25,11 +23,6 @@ import {
 } from "../tetromino/controlSystem";
 import { onPause, resetAll } from "../playfield/playfieldSlice";
 import { RootState } from "../../app/store";
-
-enum Aim {
-  left = -1,
-  right = 1
-}
 
 const useControl = (allow: boolean, action: any) => {
   const dispatch = useDispatch();
@@ -65,56 +58,51 @@ Joystick
 export function Joystick() {
   const dispatch = useDispatch();
 
-  let { left, right } = Aim
-
   /* 暂停 */
   const paused = useSelector((state: RootState) => state.playfield.pause)
 
   /* 降落 */
-  const drop = useSelector(selectSoftDrop)
+  const next = useSelector(selectForecast)
   const reachingBottom = useSelector(selectReachingBottom)
 
   // 软降
-  const onSoftDrop = useControl(!drop && reachingBottom, softDrop())
+  const onSoftDrop = useControl(next('drop', 1) && reachingBottom, softDrop())
   useClick(styles.down, () => { onSoftDrop() }, paused)
   // 硬降
-  const bottom = useSelector(selectHardDrop)
-  const onHardDrop = useControl(!drop, hardDrop(bottom))
+  const bottom = useSelector(selectReachedBottom)
+  const onHardDrop = useControl(next('drop', 1), hardDrop(bottom))
   useClick(styles.B, () => { onHardDrop() }, paused)
 
   /* 移动 */
   // 按条件添加事件，按条件触发动作
-  const move = useSelector(selectMovement);
   const reachingLeft = useSelector(selectReachingLeft)
   const reachingRight = useSelector(selectReachingRight)
-  
+
   // 左移
-  const onMoveLeft = useControl(!move(left) && reachingLeft, moveLeft())
+  const onMoveLeft = useControl(next('move', -1) && reachingLeft, moveLeft())
   useClick(styles.left, () => { onMoveLeft() }, paused)
   // 右移
-  const onMoveRight = useControl(!move(right) && reachingRight, moveRight())
+  const onMoveRight = useControl(next('move', 1) && reachingRight, moveRight())
   useClick(styles.right, () => { onMoveRight() }, paused)
 
   /* 旋转 */
-  const rotate = useSelector(selectRotation)
-
   const onRotateLeft = useCallback(() => {
-    if (!rotate(left)) {
+    if (next('rotate', -1)) {
       dispatch(rotateLeft())
     }
-  }, [rotate, left, dispatch])
+  }, [next, dispatch])
 
   // 旋转 逆时针
   // const onRotateLeft = useControl(rotate(left), rotateLeft())
   useClick(styles.A, () => { onRotateLeft() }, paused)
 
   const onRotateRight = useCallback(() => {
-    if (!rotate(right)) {
+    if (next('rotate', 1)) {
       dispatch(rotateRight())
 
 
     }
-  }, [rotate, right, dispatch])
+  }, [next, dispatch])
   // 旋转 顺时针
   // const onRotateRight = useControl(rotate(right), rotateRight())
   useClick(styles.up, () => { onRotateRight() }, paused)
