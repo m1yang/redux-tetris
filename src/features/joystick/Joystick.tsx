@@ -17,9 +17,9 @@ import {
   selectHardDrop,
   selectMovement,
   selectRotation,
-  selectOverHeight,
-  leftmost,
-  rightmost,
+  selectReachingBottom,
+  selectReachingLeft,
+  selectReachingRight,
   selectWallKick,
   selectRebound
 } from "../tetromino/controlSystem";
@@ -72,10 +72,10 @@ export function Joystick() {
 
   /* 降落 */
   const drop = useSelector(selectSoftDrop)
-  const height = useSelector(selectOverHeight)
+  const reachingBottom = useSelector(selectReachingBottom)
 
   // 软降
-  const onSoftDrop = useControl(!drop && !height, softDrop())
+  const onSoftDrop = useControl(!drop && reachingBottom, softDrop())
   useClick(styles.down, () => { onSoftDrop() }, paused)
   // 硬降
   const bottom = useSelector(selectHardDrop)
@@ -85,13 +85,14 @@ export function Joystick() {
   /* 移动 */
   // 按条件添加事件，按条件触发动作
   const move = useSelector(selectMovement);
-  const overLeft = useSelector(leftmost)
-  const overRight = useSelector(rightmost)
+  const reachingLeft = useSelector(selectReachingLeft)
+  const reachingRight = useSelector(selectReachingRight)
+  
   // 左移
-  const onMoveLeft = useControl(!move(left) && overLeft > 0, moveLeft())
+  const onMoveLeft = useControl(!move(left) && reachingLeft, moveLeft())
   useClick(styles.left, () => { onMoveLeft() }, paused)
   // 右移
-  const onMoveRight = useControl(!move(right) && overRight > 0, moveRight())
+  const onMoveRight = useControl(!move(right) && reachingRight, moveRight())
   useClick(styles.right, () => { onMoveRight() }, paused)
 
   /* 旋转 */

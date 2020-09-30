@@ -1,7 +1,7 @@
 import { createSelector } from "@reduxjs/toolkit";
 
 import { RootState } from "../../app/store";
-import { Tetromino, Direction, Point, Blocks } from "../../common/types";
+import { Blocks } from "../../common/types";
 import {
     selectCurrent,
     selectTetrominoCreator
@@ -13,44 +13,6 @@ import {
 只是单纯把selector当作计算衍生数据的手段
 正确的实现应该是selector使用少有变化的参数
 */
-
-// 需要可以针对direct获取方块2维数组形状，方便实现预测下一次旋转功能
-//  const selectTetrominos = createSelector(
-//     (state: RootState) => state.tetromino.currentShape,
-//     (shape) => (direct: Direction) => getTetrad(shape, direct)
-// );
-
-// 当前方向下的方块2维数组形状，方便预测下一次降落或平移
-//  const selectTetromino = createSelector(
-//     selectTetrominos,
-//     (state: RootState) => state.tetromino.direct,
-//     (tetrads, direct) => tetrads(direct)
-// )
-
-// 定位当前方块的中点
-//  const selectMidpoint = createSelector(
-//     (state: RootState) => state.tetromino.currentShape,
-//     (state: RootState) => state.tetromino.point,
-//     (shape, point) => getOffset(point, midPoint[shape])
-// )
-
-// const isBlocked = (
-//     tetrads: Tetromino,
-//     { x, y }: Point,
-//     blocks: Blocks,
-// ) => {
-//     for (let index = 0; index < tetrads.length; index++) {
-//         const currLine = y + index;
-//         const value = tetrads[index];
-
-//         if (blocks[currLine] &&
-//             value.some((v, i) => v !== 0 && blocks[currLine].includes(i + x))
-//         ) {
-//             return true;
-//         }
-//     }
-//     return false;
-// }
 
 export const isBlocked = (
     pieces: Blocks,
@@ -68,22 +30,30 @@ export const isBlocked = (
     return false
 }
 
-const selectControl = createSelector(
+/* 不知道是否应该用这种定参的方法来统一方块操作预测 */
+export const selectForecast = (
+    next: string,
+    step: number,
+) => createSelector(
     selectTetrominoCreator,
     (state: RootState) => state.tetromino.direct,
     (state: RootState) => state.tetromino.point,
     (state: RootState) => state.playfield.filled,
-    (tetrads, direct, point, filled) => (
-        nextDirect: number,
-        nextMove: number,
-        nextDrop: number,
-    ) => {
-        const tetrad = tetrads(
-            direct + nextDirect,
-            {
-                x: point.x + nextMove,
-                y: point.y + nextDrop
-            })
+    (tetrads, direct, point, filled) => {
+        switch (next) {
+            case 'move':
+                point.x += step
+                break;
+            case 'drop':
+                point.y += step
+                break;
+            case 'rotate':
+                direct += step
+                break;
+            default:
+                throw new Error(`only have move,drop,rotate to control`);
+        }
+        const tetrad = tetrads(direct, point)
         return isBlocked(tetrad, filled)
     }
 )
@@ -143,68 +113,85 @@ const flatten = (blocks: Blocks) => {
     return result
 }
 
-export const leftmost = createSelector(
+const selectBeyondLeft = createSelector(
     selectCurrent,
-    (piece) => Math.min(...flatten(piece)) - 0
+    (piece) => 0 - Math.min(...flatten(piece))
 )
 
-export const rightmost = createSelector(
+const selectBeyondRight = createSelector(
     selectCurrent,
-    (piece) => 9 - Math.max(...flatten(piece))
+    (piece) => Math.max(...flatten(piece)) - 9
+)
+
+export const selectReachingLeft = createSelector(
+    selectBeyondLeft,
+    (left) => left < 0
+)
+
+export const selectReachingRight = createSelector(
+    selectBeyondRight,
+    (beyond) => beyond < 0
 )
 
 // 踢墙功能，纠正方块位置 
 export const selectWallKick = createSelector(
-    leftmost,
-    rightmost,
+    selectBeyondLeft,
+    selectBeyondRight,
     (left, right) => {
-        if (left < 0) {
+        if (left > 0) {
             return left
         }
-        if (right < 0) {
+        if (right > 0) {
             return right
         }
     }
 );
 
-// blocks数据类型的key最大只能为19
-const overHeight = (
+// 下边框最大为20，当前方块会超出多少
+const beyondBottom = (
     blocks: Blocks,
     drop = 0,
-    height = 19,
-) => Object.keys(blocks).some(v => Number(v) + drop === height)
+    height = 20,
+) => Math.max(...Object.keys(blocks).map(v => Number(v) + drop)) - height + 1
 
-// 一旦触底就返回
-export const selectOverHeight = createSelector(
+// 是否正在接近下边框
+export const selectReachingBottom = createSelector(
     selectCurrent,
-    (piece) => overHeight(piece)
+    (piece) => beyondBottom(piece) < 0
 )
 
 // 触底反弹 
 export const selectRebound = createSelector(
     selectCurrent,
     (piece) => {
-        if (overHeight(piece)) {
-            return Math.max(...Object.keys(piece).map(v => Number(v))) - 19
+        const ch = beyondBottom(piece)
+        if (ch > 0) {
+            return ch
         }
     }
 );
 
-// 计算下降到底，踏踏实实一步一步判断，避免出bug
-// 如果状态需要关联，则加减，如果不需要则直接赋值
-const selectLanding = createSelector(
+// 硬降功能和方块的y没有关系，和已填充方块的y有关
+const selectDropDown = createSelector(
     selectTetrominoCreator,
     (state: RootState) => state.tetromino.direct,
     (state: RootState) => state.tetromino.point.x,
+    (tetrads, direct, x) => (y: number) => tetrads(direct, { x: x, y: y })
+)
+
+// 计算下降到底，踏踏实实一步一步判断，避免出bug
+// 如果状态需要关联，则加减，如果不需要则直接赋值
+const selectLanding = createSelector(
+    selectDropDown,
     (state: RootState) => state.playfield.filled,
-    (tetrads, direct, x, filled) => {
+    (dropDown, filled) => {
         if (filled === {}) {
             return
         }
         // 遍历filled，判断是否会被改行阻塞
         for (const key of Object.keys(filled)) {
             const line = Number(key)
-            const tetrad = tetrads(direct, { x: x, y: line })
+            const tetrad = dropDown(line)
             if (isBlocked(tetrad, filled)) {
                 // 降落在被阻塞的上一行
                 return line - 1
@@ -213,23 +200,22 @@ const selectLanding = createSelector(
     }
 )
 
-const selectDropDown = createSelector(
-    selectCurrent,
-    (piece) => {
-        for (let i = 16; i < 19; i++) {
-            if (overHeight(piece, i)) {
+const selectSink = createSelector(
+    selectDropDown,
+    (dropDown) => {
+        for (let i = 19; ; i--) {
+            const tetrad = dropDown(i)
+            if (beyondBottom(tetrad) === 0) {
                 return i
             }
         }
-        return 19
     }
 )
 
 export const selectHardDrop = createSelector(
     selectLanding,
-    selectDropDown,
+    selectSink,
     (land, down) => {
-        console.log(`渲染`, land)
         return !!land ? land : down
     }
 )

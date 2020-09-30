@@ -72,6 +72,7 @@ const rotateCache = (item: Tetromino) => {
 
 type Offset = [number, number]
 
+// 让point变成中点
 const midPoint: { [shape in Shape]: Offset } = {
     I: [-1, 0],
     L: [-1, -1],
@@ -83,7 +84,7 @@ const midPoint: { [shape in Shape]: Offset } = {
 }
 
 // 给矩阵上的点增加一个偏移量，在Point不变的情况下，改变方块的相对位置
-export const getOffset = (
+const getOffset = (
     { x, y }: Point,
     offset: Offset,
 ) => {
@@ -94,7 +95,7 @@ export const getOffset = (
 }
 
 // 根据方块形状标识符和方向，获取方块旋转后的2维数组
-export const getTetrad = (
+const getTetrad = (
     shape: Shape,
     direct: Direction,
 ) => {
@@ -125,24 +126,6 @@ export const selectNext = createSelector(
     }
 );
 
-/*  计算当前方块掉落到矩阵里 */
-// export const selectCurrent = createSelector(
-//     selectTetromino,
-//     selectMidpoint,
-//     (tetrad, point) =>  convertToBlocks(tetrad, point)
-// )
-
-export const selectCurrent = createSelector(
-    (state: RootState) => state.tetromino.currentShape,
-    (state: RootState) => state.tetromino.direct,
-    (state: RootState) => state.tetromino.point,
-    (shape, direct, point) => {
-        const tetrad = getTetrad(shape, direct)
-        point = getOffset(point, midPoint[shape])
-        return convertToBlocks(tetrad, point)
-    }
-)
-
 export const selectTetrominoCreator = createSelector(
     (state: RootState) => state.tetromino.currentShape,
     (shape) => (direct: Direction, point: Point) => {
@@ -150,4 +133,11 @@ export const selectTetrominoCreator = createSelector(
         point = getOffset(point, midPoint[shape])
         return convertToBlocks(tetrad, point)
     }
+)
+
+export const selectCurrent = createSelector(
+    selectTetrominoCreator,
+    (state: RootState) => state.tetromino.direct,
+    (state: RootState) => state.tetromino.point,
+    (tetrads, direct, point) => tetrads(direct, point)
 )
