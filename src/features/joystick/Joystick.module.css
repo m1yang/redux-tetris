@@ -125,6 +125,11 @@
   border-radius: 10px;
 }
 
+/* .pause::after {
+  content: "pause";
+  position: relative;
+} */
+
 .reset {
   composes: btn;
   background: rgb(153, 153, 153);

@@ -242,7 +242,7 @@ const rotateCache = (item: Tetromino) => {
 数据进行压缩后，只需要形状，方向和坐标就能表示出方块在矩阵中的展示。如果将方向和坐标抽出来作为函数的参数，那么修改这个参数，就能非常方便的获取到方块操作的结果。
 
 ```javascript
-/*...只展示最重要的一步*/
+/*...只展示核心代码*/
 export const selectTetrominoCreator = createSelector(
     (state: RootState) => state.tetromino.currentShape,
     // 返回一个结束方向和坐标的函数，便于计算任意操作下的方块
@@ -253,6 +253,38 @@ export const selectTetrominoCreator = createSelector(
         point = getOffset(point, midPoint[shape])
         // 将方块从2维数组转换成对象
         return convertToBlocks(tetrad, point)
+    }
+)
+
+export const selectForecast =  createSelector(
+    selectTetrominoCreator,
+    (state: RootState) => state.tetromino.direct,
+    (state: RootState) => state.tetromino.point,
+    (state: RootState) => state.playfield.filled,
+    (tetrads, direct, point, filled) => (
+        next: string,
+        step: number,
+    ) =>{
+        // 保存当前步骤
+        let nextPoint = { ...point }
+        let nextDirect = direct
+        // 确定方块操作
+        switch (next) {
+            case 'move':
+                nextPoint.x += step
+                break;
+            case 'drop':
+                nextPoint.y += step
+                break;
+            case 'rotate':
+                nextDirect += step
+                break;
+            default:
+                throw new Error(`only have move,drop,rotate to control`);
+        }
+        const tetrad = tetrads(nextDirect, nextPoint)
+        // 判断下一步是否有移动空间
+        return isVacated(tetrad, filled)
     }
 )
 ```

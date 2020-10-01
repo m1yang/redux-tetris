@@ -70,7 +70,7 @@ export function Joystick() {
   useClick(styles.down, () => { onSoftDrop() }, paused)
   // 硬降
   const bottom = useSelector(selectReachedBottom)
-  const onHardDrop = useControl(next('drop', 1), hardDrop(bottom))
+  const onHardDrop = useControl(next('drop', 1) && reachingBottom, hardDrop(bottom))
   useClick(styles.B, () => { onHardDrop() }, paused)
 
   /* 移动 */
@@ -99,8 +99,6 @@ export function Joystick() {
   const onRotateRight = useCallback(() => {
     if (next('rotate', 1)) {
       dispatch(rotateRight())
-
-
     }
   }, [next, dispatch])
   // 旋转 顺时针
@@ -118,27 +116,20 @@ export function Joystick() {
     }
   })
 
-  // 需要使用useEffect
+  const keyReset = useCallback(() => {
+    dispatch(resetAll());
+    dispatch(onPause(true))
+  }, [dispatch])
+
+  const keyPause = useCallback(() => {
+    dispatch(onPause(!paused))
+  }, [dispatch, paused])
+
   useEffect(() => {
-    if (paused === true) return;
+    // if (paused === true) return;
     const handlerKeydown: (this: Window, ev: KeyboardEvent) => any = (ev) => {
       switch (ev.key) {
-        case "ArrowUp":
-          //上
-          onRotateRight();
-          break;
-        case "ArrowDown":
-          //下
-          onSoftDrop();
-          break;
-        case "ArrowLeft":
-          //左
-          onMoveLeft();
-          break;
-
-        case "ArrowRight":
-          onMoveRight();
-          break;
+        case 'Escape': keyPause(); break;
         default:
           break;
       }
@@ -147,7 +138,38 @@ export function Joystick() {
     return () => {
       window.removeEventListener('keydown', handlerKeydown);
     };
-  }, [onRotateRight, onSoftDrop, onMoveLeft, onMoveRight, dispatch, paused])
+  }, [
+    keyPause])
+
+  // TODO 暂停会取消事件
+  useEffect(() => {
+    if (paused === true) return;
+    const handlerKeydown: (this: Window, ev: KeyboardEvent) => any = (ev) => {
+      switch (ev.key) {
+        case "ArrowUp": onRotateRight(); break;
+        case "ArrowDown": onSoftDrop(); break;
+        case "ArrowLeft": onMoveLeft(); break;
+        case "ArrowRight": onMoveRight(); break;
+        case 'z': onRotateLeft(); break;
+        case 'c': keyReset(); break;
+        case ' ': onHardDrop(); break;
+        default:
+          break;
+      }
+    }
+    window.addEventListener('keydown', handlerKeydown);
+    return () => {
+      window.removeEventListener('keydown', handlerKeydown);
+    };
+  }, [
+    paused,
+    keyReset,
+    onHardDrop,
+    onMoveLeft,
+    onMoveRight,
+    onRotateLeft,
+    onRotateRight,
+    onSoftDrop])
 
   return (
     // TODO: 摇杆样式
@@ -167,8 +189,8 @@ export function Joystick() {
         <div className={styles.gap} />
       </div>
       <div className={styles.AB}>
-        <button className={styles.A} type="button" />
-        <button className={styles.B} type="button" />
+        <button className={styles.A} type="button" >A</button>
+        <button className={styles.B} type="button" >B</button>
       </div>
       <div className={styles.start}>
         <button className={styles.pause}

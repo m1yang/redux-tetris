@@ -11,7 +11,6 @@ import {
 大幅使用了createSelector，甚至可以说是滥用
 因为每次移动，state都会改变，缓存计算结果基本无用
 只是单纯把selector当作计算衍生数据的手段
-正确的实现应该是selector使用少有变化的参数
 */
 const isVacated = (
     pieces: Blocks,
@@ -138,19 +137,19 @@ const selectDropDown = createSelector(
 // 如果状态需要关联，则加减，如果不需要则直接赋值
 const selectLanding = createSelector(
     selectDropDown,
+    (state: RootState) => state.tetromino.point.y,
     (state: RootState) => state.playfield.filled,
-    (dropDown, filled) => {
+    (dropDown, y, filled) => {
         if (filled === {}) {
             return
         }
-        // 遍历filled，判断是否会被改行阻塞
-        for (const key of Object.keys(filled)) {
-            const line = Number(key)
-            const tetrad = dropDown(line)
+        for (let i = y; i < 20; i++) {
+            const tetrad = dropDown(i)
             if (!isVacated(tetrad, filled)) {
                 // 降落在被阻塞的上一行
-                return line - 1
+                return i - 1
             }
+            
         }
     }
 )
