@@ -125,6 +125,7 @@ export function Joystick() {
     dispatch(onPause(!paused))
   }, [dispatch, paused])
 
+  // 暂停取消键盘事件
   useEffect(() => {
     // if (paused === true) return;
     const handlerKeydown: (this: Window, ev: KeyboardEvent) => any = (ev) => {
@@ -141,7 +142,7 @@ export function Joystick() {
   }, [
     keyPause])
 
-  // TODO 暂停会取消事件
+  // 键盘事件
   useEffect(() => {
     if (paused === true) return;
     const handlerKeydown: (this: Window, ev: KeyboardEvent) => any = (ev) => {
@@ -161,15 +162,18 @@ export function Joystick() {
     return () => {
       window.removeEventListener('keydown', handlerKeydown);
     };
-  }, [
-    paused,
-    keyReset,
-    onHardDrop,
-    onMoveLeft,
-    onMoveRight,
-    onRotateLeft,
-    onRotateRight,
-    onSoftDrop])
+  },
+    [
+      paused,
+      keyReset,
+      onHardDrop,
+      onMoveLeft,
+      onMoveRight,
+      onRotateLeft,
+      onRotateRight,
+      onSoftDrop,
+    ]
+  )
 
   return (
     // TODO: 摇杆样式
