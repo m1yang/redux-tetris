@@ -1,5 +1,7 @@
 .App {
   display: flex;
+  min-height: calc(100 * var(--vh, 1vh));
+  /* min-width: 56.2vmin; */
   justify-content: space-around;
   background: rgb(9, 203, 228);
 }
@@ -8,10 +10,6 @@
   display: flex;
   justify-content: space-around;
   flex-direction: column;
-
-  /* 高度不必100% */
-  min-height: 100vh;
-  /* min-width: 56.2vmin; */
   padding: 2%;
   box-shadow: rgba(0, 0, 0, 0.1) 2px 2px;
   background: rgb(238, 238, 238);
@@ -21,7 +19,6 @@
 .screen {
   display: flex;
   justify-content: space-around;
-
   background: #9ead86;
   border: 2px inset;
 }
