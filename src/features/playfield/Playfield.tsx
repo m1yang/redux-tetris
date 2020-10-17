@@ -26,6 +26,7 @@ import { Popup } from "./Popup";
 import { RootState } from "../../app/store";
 
 const useInterval = (callback: () => void, delay: number, pause: boolean) => {
+  // 菜逼教程害我不浅
   const timerRef = useRef<() => void>()
 
   timerRef.current = callback;

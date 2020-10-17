@@ -146,6 +146,7 @@ export function Joystick() {
   useEffect(() => {
     if (paused === true) return;
     const handlerKeydown: (this: Window, ev: KeyboardEvent) => any = (ev) => {
+      // 是否需要改写成useReducer形式，避免反复更新事件
       switch (ev.key) {
         case "ArrowUp": onRotateRight(); break;
         case "ArrowDown": onSoftDrop(); break;
